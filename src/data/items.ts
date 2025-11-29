@@ -118,5 +118,5 @@ export const items: Item[] = [
 ];
 
 items.forEach((item) => {
-  item.iconUrl = `${import.meta.env.BASE_URL}/images/items/${item.id}.png`;
+  item.iconUrl = `${import.meta.env.BASE_URL}images/items/${item.id}.png`;
 });
