@@ -1,14 +1,14 @@
 {
-  "GRINDING_UNIT": "Grinding Unit",
-  "PACKAGING_UNIT": "Packaging Unit",
-  "SHREDDING_UNIT": "Shredding Unit",
-  "PLANTING_UNIT": "Planting Unit",
-  "FITTING_UNIT": "Fitting Unit",
-  "REACTOR_CRUCIBLE": "Reactor Crucible",
-  "SEED_PICKING_UNIT": "Seed-Picking Unit",
-  "FILLING_UNIT": "Filling Unit",
-  "WATER_TREATMENT_UNIT": "Water Treatment Unit",
-  "REFINING_UNIT": "Refining Unit",
-  "MOULDING_UNIT": "Moulding Unit",
-  "GEARING_UNIT": "Gearing Unit"
+  "Grinding_Unit": "Grinding Unit",
+  "Packaging_Unit": "Packaging Unit",
+  "Shredding_Unit": "Shredding Unit",
+  "Planting_Unit": "Planting Unit",
+  "Fitting_Unit": "Fitting Unit",
+  "Reactor_Crucible": "Reactor Crucible",
+  "Seed-Picking_Unit": "Seed-Picking Unit",
+  "Filling_Unit": "Filling Unit",
+  "Water_Treatment_Unit": "Water Treatment Unit",
+  "Refining_Unit": "Refining Unit",
+  "Moulding_Unit": "Moulding Unit",
+  "Gearing_Unit": "Gearing Unit"
 }
