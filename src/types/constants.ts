@@ -81,7 +81,6 @@ const ItemId = {
 type ItemId = (typeof ItemId)[keyof typeof ItemId];
 
 const RecipeId = {
-  // Shredding Unit Recipes
   SHREDDING_UNIT__CARBON_POWDER__1: "Shredding_Unit__Carbon_Powder__1",
   SHREDDING_UNIT__ORIGOCRUST_POWDER__1: "Shredding_Unit__Origocrust_Powder__1",
   SHREDDING_UNIT__FERRIUM_POWDER__1: "Shredding_Unit__Ferrium_Powder__1",
@@ -94,7 +93,6 @@ const RecipeId = {
   SHREDDING_UNIT__SANDLEAF_POWDER__1: "Shredding_Unit__Sandleaf_Powder__1",
   SHREDDING_UNIT__AMETHYST_POWDER__1: "Shredding_Unit__Amethyst_Powder__1",
 
-  // Refining Unit Recipes
   REFINING_UNIT__STABILIZED_CARBON__1: "Refining_Unit__Stabilized_Carbon__1",
   REFINING_UNIT__DENSE_CARBON_POWDER__1:
     "Refining_Unit__Dense_Carbon_Powder__1",
@@ -124,26 +122,22 @@ const RecipeId = {
   REFINING_UNIT__AMETHYST_FIBER__1: "Refining_Unit__Amethyst_Fiber__1",
   REFINING_UNIT__AMETHYST_FIBER__2: "Refining_Unit__Amethyst_Fiber__2",
 
-  // Fitting Unit Recipes
   FITTING_UNIT__CUPRIUM_PART__1: "Fitting_Unit__Cuprium_Part__1",
   FITTING_UNIT__AMETHYST_PART__1: "Fitting_Unit__Amethyst_Part__1",
   FITTING_UNIT__CRYSTON_PART__1: "Fitting_Unit__Cryston_Part__1",
   FITTING_UNIT__FERRIUM_PART__1: "Fitting_Unit__Ferrium_Part__1",
   FITTING_UNIT__STEEL_PART__1: "Fitting_Unit__Steel_Part__1",
 
-  // Moulding Unit Recipes
   MOULDING_UNIT__AMETHYST_BOTTLE__1: "Moulding_Unit__Amethyst_Bottle__1",
   MOULDING_UNIT__CRYSTON_BOTTLE__1: "Moulding_Unit__Cryston_Bottle__1",
   MOULDING_UNIT__FERRIUM_BOTTLE__1: "Moulding_Unit__Ferrium_Bottle__1",
   MOULDING_UNIT__STEEL_BOTTLE__1: "Moulding_Unit__Steel_Bottle__1",
 
-  // Planting Unit Recipes
   PLANTING_UNIT__AKETINE__1: "Planting_Unit__Aketine__1",
   PLANTING_UNIT__BUCKFLOWER__1: "Planting_Unit__Buckflower__1",
   PLANTING_UNIT__CITROME__1: "Planting_Unit__Citrome__1",
   PLANTING_UNIT__SANDLEAF__1: "Planting_Unit__Sandleaf__1",
 
-  // Seed-Picking Unit Recipes
   SEED_PICKING_UNIT__AKETINE_SEED__1: "Seed-Picking_Unit__Aketine_Seed__1",
   SEED_PICKING_UNIT__JINCAO_SEED__1: "Seed-Picking_Unit__Jincao_Seed__1",
   SEED_PICKING_UNIT__YAZHEN_SEED__1: "Seed-Picking_Unit__Yazhen_Seed__1",
@@ -173,18 +167,15 @@ const RecipeId = {
     "Grinding_Unit__Ground_Citrome_Powder__1",
   GRINDING_UNIT__CRYSTON_POWDER__1: "Grinding_Unit__Cryston_Powder__1",
 
-  // Packaging Unit Recipes
   PACKAGING_UNIT__LC_BATTERY__1: "Packaging_Unit__LC_Battery__1",
   PACKAGING_UNIT__SC_BATTERY__1: "Packaging_Unit__SC_Battery__1",
   PACKAGING_UNIT__HC_BATTERY__1: "Packaging_Unit__HC_Battery__1",
   PACKAGING_UNIT__INDUSTRIAL_EXPLOSIVE__1:
     "Packaging_Unit__Industrial_Explosive__1",
 
-  // Reactor Crucible Recipes
   REACTOR_CRUCIBLE__JINCAO_SOLUTION__1: "Reactor_Crucible__Jincao_Solution__1",
   REACTOR_CRUCIBLE__YAZHEN_SOLUTION__1: "Reactor_Crucible__Yazhen_Solution__1",
 
-  // Filling Unit Recipes
   FILLING_UNIT__CANNED_CITROME_C__1: "Filling_Unit__Canned_Citrome_(C)__1",
   FILLING_UNIT__CANNED_CITROME_B__1: "Filling_Unit__Canned_Citrome_(B)__1",
   FILLING_UNIT__CANNED_CITROME_A__1: "Filling_Unit__Canned_Citrome_(A)__1",
@@ -192,7 +183,6 @@ const RecipeId = {
   FILLING_UNIT__BUCK_CAPSULE_B__1: "Filling_Unit__Buck_Capsule_(B)__1",
   FILLING_UNIT__BUCK_CAPSULE_A__1: "Filling_Unit__Buck_Capsule_(A)__1",
 
-  // Gearing Unit Recipes
   GEARING_UNIT__AMETHYST_COMPONENT__1: "Gearing_Unit__Amethyst_Component__1",
   GEARING_UNIT__FERRIUM_COMPONENT__1: "Gearing_Unit__Ferrium_Component__1",
   GEARING_UNIT__CRYSTON_COMPONENT__1: "Gearing_Unit__Cryston_Component__1",

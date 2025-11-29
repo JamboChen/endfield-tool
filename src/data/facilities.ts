@@ -182,5 +182,5 @@ export const facilities: Facility[] = [
 ];
 
 facilities.forEach((f) => {
-  f.iconUrl = `/images/facilities/${f.id}.png`;
+  f.iconUrl = `${import.meta.env.BASE_URL}/images/items/${f.id}.png`;
 });

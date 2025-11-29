@@ -2,7 +2,6 @@ import { ItemId, RecipeId, FacilityId } from "@/types/constants";
 import type { Recipe } from "@/types";
 
 export const recipes: Recipe[] = [
-  // Grinding Unit Recipes
   {
     id: RecipeId.GRINDING_UNIT__DENSE_CARBON_POWDER__1,
     inputs: [
@@ -73,7 +72,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.GRINDING_UNIT,
     craftingTime: 2,
   },
-  // Packaging Unit Recipes
+
   {
     id: RecipeId.PACKAGING_UNIT__LC_BATTERY__1,
     inputs: [
@@ -114,7 +113,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.PACKAGING_UNIT,
     craftingTime: 10,
   },
-  // Shredding Unit Recipes
+
   {
     id: RecipeId.SHREDDING_UNIT__CARBON_POWDER__1,
     inputs: [{ itemId: ItemId.CARBON, amount: 1 }],
@@ -192,7 +191,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.SHREDDING_UNIT,
     craftingTime: 2,
   },
-  // Planting Unit Recipes
+
   {
     id: RecipeId.PLANTING_UNIT__AKETINE__1,
     inputs: [{ itemId: ItemId.AKETINE_SEED, amount: 1 }],
@@ -221,7 +220,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.PLANTING_UNIT,
     craftingTime: 2,
   },
-  // Fitting Unit Recipes
+
   {
     id: RecipeId.FITTING_UNIT__CUPRIUM_PART__1,
     inputs: [{ itemId: ItemId.CUPRIUM, amount: 1 }],
@@ -257,7 +256,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.FITTING_UNIT,
     craftingTime: 2,
   },
-  // Reactor Crucible Recipes
+
   {
     id: RecipeId.REACTOR_CRUCIBLE__JINCAO_SOLUTION__1,
     inputs: [
@@ -278,7 +277,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.REACTOR_CRUCIBLE,
     craftingTime: 2,
   },
-  // Seed-Picking Unit Recipes
+
   {
     id: RecipeId.SEED_PICKING_UNIT__AKETINE_SEED__1,
     inputs: [{ itemId: ItemId.AKETINE, amount: 1 }],
@@ -349,7 +348,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.SEED_PICKING_UNIT,
     craftingTime: 2,
   },
-  // Filling Unit Recipes
+
   {
     id: RecipeId.FILLING_UNIT__CANNED_CITROME_C__1,
     inputs: [
@@ -410,7 +409,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.FILLING_UNIT,
     craftingTime: 10,
   },
-  // Refining Unit Recipes (Continuation)
+
   {
     id: RecipeId.REFINING_UNIT__STABILIZED_CARBON__1,
     inputs: [{ itemId: ItemId.DENSE_CARBON_POWDER, amount: 1 }],
@@ -586,7 +585,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.REFINING_UNIT,
     craftingTime: 2,
   },
-  // Moulding Unit Recipes
+
   {
     id: RecipeId.MOULDING_UNIT__AMETHYST_BOTTLE__1,
     inputs: [{ itemId: ItemId.AMETHYST_FIBER, amount: 2 }],
@@ -615,7 +614,7 @@ export const recipes: Recipe[] = [
     facilityId: FacilityId.MOULDING_UNIT,
     craftingTime: 2,
   },
-  // Gearing Unit Recipes
+
   {
     id: RecipeId.GEARING_UNIT__AMETHYST_COMPONENT__1,
     inputs: [

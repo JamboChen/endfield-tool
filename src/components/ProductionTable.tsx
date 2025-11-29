@@ -59,9 +59,8 @@ export default function ProductionTable({
 
   const formatNumber = (num: number, decimals = 2) => num.toFixed(decimals);
 
-  // 渲染配方的输入输出（精简版，用于主视图）
   const renderRecipeIOCompact = (recipe: Recipe) => {
-    const maxDisplay = 2; // 最多显示的物品数
+    const maxDisplay = 2;
 
     const renderItems = (
       recipeItems: Array<{ itemId: ItemId; amount: number }>,
@@ -118,7 +117,6 @@ export default function ProductionTable({
     );
   };
 
-  // 渲染配方的输入输出（完整版，用于 Select 和 Tooltip）
   const renderRecipeIOFull = (recipe: Recipe) => {
     const renderItems = (
       recipeItems: Array<{ itemId: ItemId; amount: number }>,

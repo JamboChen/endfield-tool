@@ -38,12 +38,10 @@ export default function AddTargetDialogGrid({
     return item.name[language] || item.name.en || item.id;
   };
 
-  // 过滤可添加的物品
   const availableItems = items.filter(
     (item) => !existingTargetIds.includes(item.id),
   );
 
-  // 搜索过滤
   const filteredItems = availableItems.filter((item) => {
     const name = getItemName(item).toLowerCase();
     const query = searchQuery.toLowerCase();

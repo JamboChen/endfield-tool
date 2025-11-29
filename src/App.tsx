@@ -19,7 +19,6 @@ export default function App() {
   );
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // 使用 useMemo 确保只在依赖变化时重新计算
   const { plan, tableData, error } = useMemo(() => {
     let plan = null;
     let tableData: ProductionLineData[] = [];
@@ -35,9 +34,7 @@ export default function App() {
           recipeOverrides,
         );
 
-        // 转换 flatList 为 ProductionTable 可用数据
         tableData = plan.flatList.map((node) => {
-          // 查找所有能生产该物品的配方
           const availableRecipes = recipes.filter((recipe) =>
             recipe.outputs.some((output) => output.itemId === node.item.id),
           );
@@ -59,7 +56,7 @@ export default function App() {
     }
 
     return { plan, tableData, error };
-  }, [targets, recipeOverrides]); // 依赖 targets 和 recipeOverrides
+  }, [targets, recipeOverrides]);
 
   const handleTargetChange = (index: number, rate: number) => {
     const newTargets = [...targets];
@@ -76,7 +73,6 @@ export default function App() {
   };
 
   const handleRecipeChange = (itemId: ItemId, recipeId: RecipeId) => {
-    // 创建新的 Map 对象，触发 useMemo 重新计算
     setRecipeOverrides((prev) => {
       const newMap = new Map(prev);
       newMap.set(itemId, recipeId);

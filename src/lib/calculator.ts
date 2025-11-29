@@ -1,6 +1,5 @@
 import type { Item, Recipe, Facility, ItemId, RecipeId } from "@/types";
 
-// 产线节点
 export type ProductionNode = {
   item: Item;
   targetRate: number;
@@ -11,7 +10,6 @@ export type ProductionNode = {
   dependencies: ProductionNode[];
 };
 
-// 生产计划
 export type ProductionPlan = {
   rootNode: ProductionNode;
   flatList: ProductionNode[];
@@ -19,7 +17,6 @@ export type ProductionPlan = {
   rawMaterialRequirements: Map<ItemId, number>;
 };
 
-// 配方选择器
 export type RecipeSelector = (
   itemId: ItemId,
   availableRecipes: Recipe[],
@@ -47,9 +44,7 @@ function calculateNode(
   const item = itemMap.get(itemId);
   if (!item) throw new Error(`Item not found: ${itemId}`);
 
-  // 检测循环依赖
   if (visitedPath.has(itemId)) {
-    // 循环出现时直接视为原材料，打断循环
     return {
       item,
       targetRate: requiredRate,
@@ -61,7 +56,6 @@ function calculateNode(
     };
   }
 
-  // 判断是否为原材料
   const availableRecipes = recipes.filter((r) =>
     r.outputs.some((o) => o.itemId === itemId),
   );
@@ -77,7 +71,6 @@ function calculateNode(
     };
   }
 
-  // 选择配方
   let selectedRecipe: Recipe;
   if (recipeOverrides?.has(itemId)) {
     const overrideRecipe = recipeMap.get(recipeOverrides.get(itemId)!);
@@ -92,7 +85,6 @@ function calculateNode(
   if (!facility)
     throw new Error(`Facility not found: ${selectedRecipe.facilityId}`);
 
-  // 单台机器产量
   const outputAmount =
     selectedRecipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
   const cyclesPerMinute = 60 / selectedRecipe.craftingTime;
@@ -100,7 +92,6 @@ function calculateNode(
 
   const facilityCount = requiredRate / outputRatePerFacility;
 
-  // 递归计算依赖
   const newVisitedPath = new Set(visitedPath);
   newVisitedPath.add(itemId);
   const dependencies = selectedRecipe.inputs.map((input) => {
@@ -194,7 +185,6 @@ export function calculateMultipleTargets(
       recipeOverrides,
     );
 
-  // 多目标分别计算
   const plans = targets.map((t) =>
     calculateProductionLine(
       t.itemId,
@@ -206,7 +196,6 @@ export function calculateMultipleTargets(
     ),
   );
 
-  // 合并节点
   const mergedNodes = new Map<
     string,
     {
