@@ -61,7 +61,6 @@ export default function App() {
           };
         });
       }
-      console.log("Recalculated plan:", tableData);
     } catch (e) {
       error = e instanceof Error ? e.message : "计算错误";
     }
