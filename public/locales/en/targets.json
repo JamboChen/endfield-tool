@@ -1,9 +1,9 @@
 {
-  "title": "Production Targets",
-  "count": "{{current}} / {{max}}",
   "addTarget": "Add Target",
+  "count": "{{current}} / {{max}}",
+  "noIcon": "None",
+  "rateInput": "Rate Input",
   "rateUnit": "per minute",
   "removeTarget": "Remove Target",
-  "noIcon": "None",
-  "rateInput": "Rate Input"
+  "title": "Production Targets"
 }

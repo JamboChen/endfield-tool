@@ -1,9 +1,9 @@
 {
-  "title": "生產目標",
-  "count": "{{current}} / {{max}}",
   "addTarget": "添加目標",
+  "count": "{{current}} / {{max}}",
+  "noIcon": "無",
+  "rateInput": "產量輸入",
   "rateUnit": "個/分鐘",
   "removeTarget": "刪除目標",
-  "noIcon": "無",
-  "rateInput": "產量輸入"
+  "title": "生產目標"
 }

@@ -1,13 +1,13 @@
 {
-  "title": "選擇目標物品",
-  "searchPlaceholder": "搜尋物品...",
-  "defaultRate": "默認產量",
-  "rateUnit": "個/分",
+  "add": "添加",
   "allItemsAdded": "所有物品都已添加",
-  "noMatchingItems": "未找到匹配的物品",
-  "noIcon": "無",
-  "hint": "💡 雙擊物品可快速添加 | 已選擇: {{selected}}",
-  "noneSelected": "無",
   "cancel": "取消",
-  "add": "添加"
+  "clickToSelectDoubleClickToAdd": "",
+  "defaultRate": "默認產量",
+  "hint": "💡 雙擊物品可快速添加 | 已選擇: {{selected}}",
+  "noIcon": "無",
+  "noMatchingItems": "未找到匹配的物品",
+  "rateUnit": "個/分",
+  "searchPlaceholder": "搜尋物品...",
+  "title": "選擇目標物品"
 }

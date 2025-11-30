@@ -1,13 +1,13 @@
 {
-  "title": "Select Target Item",
-  "searchPlaceholder": "Search items...",
-  "defaultRate": "Default Rate",
-  "rateUnit": "per min",
+  "add": "Add",
   "allItemsAdded": "All items have been added",
-  "noMatchingItems": "No matching items found",
-  "noIcon": "None",
-  "hint": "💡 Double-click to quickly add | Selected: {{selected}}",
-  "noneSelected": "None",
   "cancel": "Cancel",
-  "add": "Add"
+  "clickToSelectDoubleClickToAdd": "",
+  "defaultRate": "Default Rate",
+  "hint": "💡 Double-click to quickly add | Selected: {{selected}}",
+  "noIcon": "None",
+  "noMatchingItems": "No matching items found",
+  "rateUnit": "per min",
+  "searchPlaceholder": "Search items...",
+  "title": "Select Target Item"
 }

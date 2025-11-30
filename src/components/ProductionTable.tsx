@@ -128,12 +128,11 @@ const RecipeIOFull = memo(
   ({
     recipe,
     getItemById,
-    t,
   }: {
     recipe: Recipe;
     getItemById: (id: ItemId) => Item | undefined;
-    t: (key: string) => string;
   }) => {
+    const { t } = useTranslation("production");
     const renderItems = (
       recipeItems: Array<{ itemId: ItemId; amount: number }>,
     ) => {
@@ -354,7 +353,6 @@ const ProductionTable = memo(function ProductionTable({
                                 <RecipeIOFull
                                   recipe={recipe}
                                   getItemById={getItemById}
-                                  t={t}
                                 />
                               </div>
                             </SelectItem>
@@ -379,7 +377,6 @@ const ProductionTable = memo(function ProductionTable({
                             <RecipeIOFull
                               recipe={selectedRecipe}
                               getItemById={getItemById}
-                              t={t}
                             />
                           </div>
                         </TooltipContent>

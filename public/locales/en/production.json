@@ -1,21 +1,21 @@
 {
-  "table": {
-    "headers": {
-      "icon": "Icon",
-      "item": "Item",
-      "outputRate": "Rate/min",
-      "recipe": "Recipe",
-      "facility": "Facility",
-      "count": "Count",
-      "power": "Power(kW)"
-    },
-    "noData": "No Data",
-    "rawMaterial": "Raw Material",
-    "noRecipe": "No Recipe"
-  },
   "recipe": {
     "inputs": "Inputs",
     "outputs": "Outputs",
     "time": "Time"
+  },
+  "table": {
+    "headers": {
+      "count": "Count",
+      "facility": "Facility",
+      "icon": "Icon",
+      "item": "Item",
+      "outputRate": "Rate/min",
+      "power": "Power(kW)",
+      "recipe": "Recipe"
+    },
+    "noData": "No Data",
+    "noRecipe": "No Recipe",
+    "rawMaterial": "Raw Material"
   }
 }
