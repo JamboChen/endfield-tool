@@ -11,4 +11,20 @@ export default defineConfig({
     },
   },
   base: "/endfield-tool/",
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react")) return "react";
+            if (id.includes("lodash")) return "lodash";
+            if (id.includes("@xyflow/system")) return "xyflow";
+            if (id.includes("graphlib") || id.includes("dagre")) return "graph";
+            if (id.includes("d3-selection") || id.includes("d3-transition"))
+              return "d3";
+          }
+        },
+      },
+    },
+  },
 });
