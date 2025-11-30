@@ -20,7 +20,7 @@ import CustomProductionNode, {
   type FlowProductionNode,
 } from "./CustomProductionNode";
 import { useTranslation } from "react-i18next";
-import { getLayoutedElements } from "./layoutUtils";
+import { getLayoutedElements } from "@/lib/layout";
 
 /**
  * Creates a stable key for a ProductionNode.

@@ -153,7 +153,7 @@ export default function CustomProductionNode({
                   ) : (
                     <span className="text-sm">🏭</span> // Fallback icon
                   )}
-                  <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">
+                  <span className="text-[10px] text-muted-foreground truncate max-w-20">
                     {facilityName}
                   </span>
                 </div>
