@@ -1,6 +1,6 @@
 import { Position, MarkerType } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
-import type { Item, Facility, ItemId } from "@/types";
+import type { Item, Facility } from "@/types";
 import type { ProductionNode } from "@/lib/calculator";
 import type {
   FlowProductionNode,
@@ -13,7 +13,6 @@ import { applyEdgeStyling } from "./edge-styling";
 import {
   createFlowNodeKey,
   aggregateProductionNodes,
-  createTargetMap,
   makeNodeIdFromKey,
   type AggregatedProductionNodeData,
 } from "./flow-utils";
@@ -101,14 +100,11 @@ export function mapPlanToFlowSeparated(
   rootNodes: ProductionNode[],
   items: Item[],
   facilities: Facility[],
-  originalTargets?: Array<{ itemId: ItemId; rate: number }>,
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
   // Step 1: Collect unique nodes with aggregated rates and determine processing order
   const nodeMap = aggregateProductionNodes(rootNodes);
   const sortedKeys = topologicalSort(nodeMap);
 
-  // Create a map of target items for quick lookup
-  const targetMap = createTargetMap(originalTargets);
   // Step 2: Initialize capacity pool manager with aggregated production rates
   const poolManager = new CapacityPoolManager();
 
@@ -135,9 +131,9 @@ export function mapPlanToFlowSeparated(
     const node = aggregatedData.node;
 
     // Check if this node is also a direct target
-    const isDirectTarget = targetMap.has(node.item.id);
+    const isDirectTarget = node.isTarget;
     const directTargetRate = isDirectTarget
-      ? targetMap.get(node.item.id)
+      ? aggregatedData.totalRate
       : undefined;
 
     if (node.isRawMaterial) {
@@ -291,60 +287,43 @@ export function mapPlanToFlowSeparated(
   });
 
   // Step 5: Create target sink nodes for each original target
-  if (originalTargets) {
-    originalTargets.forEach((target) => {
-      const item = items.find((i) => i.id === target.itemId);
-      if (!item) return;
+  const targetNodes = Array.from(nodeMap.entries()).filter(
+    ([, data]) => data.node.isTarget && !data.node.isRawMaterial,
+  );
 
-      const targetNodeId = `target-sink-${target.itemId}`;
+  targetNodes.forEach(([productionKey, data]) => {
+    const targetNodeId = `target-sink-${data.node.item.id}`;
+    const allocations = poolManager.allocate(productionKey, data.totalRate);
 
-      // Find the production key for this item
-      const productionKey = Array.from(nodeMap.keys()).find((key) => {
-        const nodeData = nodeMap.get(key)!;
-        return (
-          nodeData.node.item.id === target.itemId &&
-          !nodeData.node.isRawMaterial
-        );
-      });
-
-      if (productionKey) {
-        // In separated mode, we need to allocate from the capacity pool
-        const allocations = poolManager.allocate(productionKey, target.rate);
-
-        // Create target sink node
-        targetSinkNodes.push({
-          id: targetNodeId,
-          type: "targetSink",
-          data: {
-            item,
-            targetRate: target.rate,
-            items,
-          },
-          position: { x: 0, y: 0 },
-          targetPosition: Position.Left,
-        });
-
-        // Create edges from allocated facilities to target sink
-        allocations.forEach((allocation) => {
-          edges.push({
-            id: `e${edgeIdCounter++}`,
-            source: allocation.sourceNodeId,
-            target: targetNodeId,
-            type: "default",
-            label: `${allocation.allocatedAmount.toFixed(2)} /min`,
-            data: { flowRate: allocation.allocatedAmount },
-            animated: true, // Animate target edges for emphasis
-            style: { stroke: "#10b981", strokeWidth: 2 }, // Green, thicker
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: "#10b981",
-            },
-          });
-        });
-      }
+    targetSinkNodes.push({
+      id: targetNodeId,
+      type: "targetSink",
+      data: {
+        item: data.node.item,
+        targetRate: data.totalRate,
+        items,
+      },
+      position: { x: 0, y: 0 },
+      targetPosition: Position.Left,
     });
-  }
 
+    allocations.forEach((allocation) => {
+      edges.push({
+        id: `e${edgeIdCounter++}`,
+        source: allocation.sourceNodeId,
+        target: targetNodeId,
+        type: "default",
+        label: `${allocation.allocatedAmount.toFixed(2)} /min`,
+        data: { flowRate: allocation.allocatedAmount },
+        animated: true,
+        style: { stroke: "#10b981", strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: "#10b981",
+        },
+      });
+    });
+  });
   // Apply dynamic styling to edges
   const styledEdges = applyEdgeStyling(edges);
 

@@ -18,6 +18,7 @@ export type ProductionNode = {
   facility: Facility | null;
   facilityCount: number;
   isRawMaterial: boolean;
+  isTarget: boolean;
   dependencies: ProductionNode[];
 };
 
@@ -57,7 +58,7 @@ type MergedNode = {
   facility: Facility | null;
   totalFacilityCount: number;
   isRawMaterial: boolean;
-  // Set of keys for nodes this MergedNode depends on
+  isTarget: boolean;
   dependencies: Set<string>;
 };
 
@@ -103,8 +104,6 @@ function mergeProductionNodes(
   const mergedNodes = new Map<string, MergedNode>();
 
   const collectNodes = (node: ProductionNode) => {
-    // Skip nodes that are already marked as circular dependency pseudo-raw-materials,
-    // unless they are true raw materials (which are never in producedItemIds).
     if (isCircularDependency(node, producedItemIds)) {
       return;
     }
@@ -120,7 +119,10 @@ function mergeProductionNodes(
       existing.totalRate += node.targetRate;
       existing.totalFacilityCount += node.facilityCount;
 
-      // Collect dependencies from the new node
+      if (node.isTarget && !existing.isTarget) {
+        existing.isTarget = true;
+      }
+
       node.dependencies.forEach((dep) => {
         if (!isCircularDependency(dep, producedItemIds)) {
           const depKey = createNodeKey(
@@ -132,7 +134,6 @@ function mergeProductionNodes(
         }
       });
     } else {
-      // Create a new merged node
       const dependencies = new Set<string>();
       node.dependencies.forEach((dep) => {
         if (!isCircularDependency(dep, producedItemIds)) {
@@ -152,11 +153,11 @@ function mergeProductionNodes(
         facility: node.facility,
         totalFacilityCount: node.facilityCount,
         isRawMaterial: node.isRawMaterial,
+        isTarget: node.isTarget,
         dependencies,
       });
     }
 
-    // Recursively collect dependencies of the current node
     node.dependencies.forEach(collectNodes);
   };
 
@@ -289,7 +290,8 @@ function sortByLevelAndTier(
   return result;
 }
 
-/** * Constructs the final flattened plan components (list, power, raw materials)
+/**
+ * Constructs the final flattened plan components (list, power, raw materials)
  * from the merged and sorted production nodes.
  */
 function buildFinalPlanComponents(
@@ -304,18 +306,15 @@ function buildFinalPlanComponents(
     const node = mergedNodes.get(key)!;
 
     if (node.isRawMaterial) {
-      // Aggregate raw material requirements
       rawMaterialRequirements.set(
         node.item.id,
         (rawMaterialRequirements.get(node.item.id) || 0) + node.totalRate,
       );
     } else if (node.facility) {
-      // Calculate total power consumption
       totalPowerConsumption +=
         node.facility.powerConsumption * node.totalFacilityCount;
     }
 
-    // Create the final ProductionNode for the flattened list
     flatList.push({
       item: node.item,
       targetRate: node.totalRate,
@@ -323,7 +322,8 @@ function buildFinalPlanComponents(
       facility: node.facility,
       facilityCount: node.totalFacilityCount,
       isRawMaterial: node.isRawMaterial,
-      dependencies: [], // Dependencies are not needed in the flat list
+      isTarget: node.isTarget,
+      dependencies: [],
     });
   });
 
@@ -341,12 +341,12 @@ function calculateNode(
   recipeOverrides?: Map<ItemId, RecipeId>,
   recipeSelector: RecipeSelector = defaultRecipeSelector,
   visitedPath: Set<ItemId> = new Set(),
+  isDirectTarget: boolean = false,
 ): ProductionNode {
   const item = maps.itemMap.get(itemId);
   if (!item) throw new Error(`Item not found: ${itemId}`);
 
-  // Check for circular dependency: If the item is already being processed up the chain,
-  // treat it as a raw material for this branch to break the cycle.
+  // Check for circular dependency
   if (visitedPath.has(itemId)) {
     return {
       item,
@@ -354,7 +354,8 @@ function calculateNode(
       recipe: null,
       facility: null,
       facilityCount: 0,
-      isRawMaterial: true, // Pseudo-raw material to break the loop
+      isRawMaterial: true,
+      isTarget: false,
       dependencies: [],
     };
   }
@@ -363,7 +364,6 @@ function calculateNode(
     r.outputs.some((o) => o.itemId === itemId),
   );
 
-  // If no recipe is found, treat the item as a true raw material
   if (availableRecipes.length === 0) {
     return {
       item,
@@ -372,11 +372,12 @@ function calculateNode(
       facility: null,
       facilityCount: 0,
       isRawMaterial: true,
+      isTarget: isDirectTarget,
       dependencies: [],
     };
   }
 
-  // Recipe selection logic (override takes precedence over selector)
+  // Recipe selection logic
   let selectedRecipe: Recipe;
   if (recipeOverrides?.has(itemId)) {
     const overrideRecipe = maps.recipeMap.get(recipeOverrides.get(itemId)!);
@@ -415,6 +416,7 @@ function calculateNode(
       recipeOverrides,
       recipeSelector,
       newVisitedPath,
+      false,
     );
   });
 
@@ -425,6 +427,7 @@ function calculateNode(
     facility,
     facilityCount,
     isRawMaterial: false,
+    isTarget: isDirectTarget,
     dependencies,
   };
 }
@@ -439,7 +442,15 @@ function buildDependencyTree(
   recipeSelector: RecipeSelector = defaultRecipeSelector,
 ): ProductionNode[] {
   return targets.map((t) =>
-    calculateNode(t.itemId, t.rate, maps, recipeOverrides, recipeSelector),
+    calculateNode(
+      t.itemId,
+      t.rate,
+      maps,
+      recipeOverrides,
+      recipeSelector,
+      new Set(),
+      true,
+    ),
   );
 }
 

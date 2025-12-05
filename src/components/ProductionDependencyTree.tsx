@@ -10,7 +10,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { Item, Facility, ItemId } from "@/types";
+import type { Item, Facility } from "@/types";
 import type { UnifiedProductionPlan } from "@/lib/calculator";
 import CustomProductionNode from "./tree-node/CustomProductionNode";
 import CustomTargetNode from "./tree-node/CustomTargetNode";
@@ -52,10 +52,7 @@ export default function ProductionDependencyTree({
   items,
   facilities,
   visualizationMode = "separated",
-  targets,
-}: ProductionDependencyTreeProps & {
-  targets?: Array<{ itemId: ItemId; rate: number }>;
-}) {
+}: ProductionDependencyTreeProps) {
   const { t } = useTranslation("production");
 
   const { initialNodes, initialEdges } = useMemo(() => {
@@ -66,18 +63,8 @@ export default function ProductionDependencyTree({
     // Select the appropriate mapper based on visualization mode
     const flowData =
       visualizationMode === "separated"
-        ? mapPlanToFlowSeparated(
-            plan.dependencyRootNodes,
-            items,
-            facilities,
-            targets,
-          ) // Pass targets
-        : mapPlanToFlowMerged(
-            plan.dependencyRootNodes,
-            items,
-            facilities,
-            targets,
-          ); // Pass targets
+        ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
+        : mapPlanToFlowMerged(plan.dependencyRootNodes, items, facilities);
 
     // Apply layout algorithm to position nodes
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
@@ -90,7 +77,7 @@ export default function ProductionDependencyTree({
       initialNodes: layoutedNodes as FlowProductionNode[],
       initialEdges: layoutedEdges,
     };
-  }, [plan, items, facilities, visualizationMode, targets]);
+  }, [plan, items, facilities, visualizationMode]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowProductionNode>(
     [],

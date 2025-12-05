@@ -24,9 +24,6 @@ export function useProductionPlan() {
     let tableData: ProductionLineData[] = [];
     let error: string | null = null;
 
-    // Create a set of target item IDs for quick lookup
-    const targetItemIds = new Set(targets.map((t) => t.itemId));
-
     try {
       if (targets.length > 0) {
         plan = calculateProductionPlan(
@@ -42,9 +39,6 @@ export function useProductionPlan() {
             recipe.outputs.some((output) => output.itemId === node.item.id),
           );
 
-          // Check if this item is one of the initial targets
-          const isTargetItem = targetItemIds.has(node.item.id);
-
           return {
             item: node.item,
             outputRate: node.targetRate,
@@ -53,7 +47,7 @@ export function useProductionPlan() {
             facility: node.facility ?? null,
             facilityCount: node.facilityCount ?? 0,
             isRawMaterial: node.isRawMaterial,
-            isTarget: isTargetItem,
+            isTarget: node.isTarget,
           };
         });
       }

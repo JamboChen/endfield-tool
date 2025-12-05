@@ -57,7 +57,6 @@ export default function App() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onRecipeChange={handleRecipeChange}
-            targets={targets}
           />
         </div>
 

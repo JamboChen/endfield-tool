@@ -52,6 +52,14 @@ export function aggregateProductionNodes(
       // Aggregate rates and facility counts from multiple occurrences
       existing.totalRate += node.targetRate;
       existing.totalFacilityCount += node.facilityCount;
+
+      // Preserve isTarget flag: if ANY occurrence is a target, mark it as target
+      if (node.isTarget && !existing.node.isTarget) {
+        existing.node = {
+          ...existing.node,
+          isTarget: true,
+        };
+      }
     } else {
       // First encounter: create new entry
       nodeMap.set(key, {

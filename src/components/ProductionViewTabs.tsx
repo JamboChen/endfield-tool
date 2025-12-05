@@ -10,7 +10,6 @@ import type { Item, Facility } from "@/types";
 import type { ProductionLineData } from "./ProductionTable";
 import type { ItemId, RecipeId } from "@/types";
 import type { VisualizationMode } from "./flow-mapping/types";
-import type { ProductionTarget } from "./TargetItemsGrid";
 
 interface ProductionViewTabsProps {
   plan: UnifiedProductionPlan | null;
@@ -20,7 +19,6 @@ interface ProductionViewTabsProps {
   activeTab: "table" | "tree";
   onTabChange: (tab: "table" | "tree") => void;
   onRecipeChange: (itemId: ItemId, recipeId: RecipeId) => void;
-  targets: ProductionTarget[];
 }
 
 export default function ProductionViewTabs({
@@ -31,7 +29,6 @@ export default function ProductionViewTabs({
   activeTab,
   onTabChange,
   onRecipeChange,
-  targets,
 }: ProductionViewTabsProps) {
   const { t } = useTranslation("app");
   const [visualizationMode, setVisualizationMode] =
@@ -95,7 +92,6 @@ export default function ProductionViewTabs({
                 items={items}
                 facilities={facilities}
                 visualizationMode={visualizationMode}
-                targets={targets}
               />
             </TabsContent>
           </Tabs>
