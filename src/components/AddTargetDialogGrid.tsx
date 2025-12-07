@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import type { Item, ItemId } from "@/types";
@@ -66,13 +65,12 @@ export default function AddTargetDialogGrid({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[85vh] flex flex-col">
+      <DialogContent className="max-w-[80vw]! h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
-
         <div className="space-y-4 flex-1 min-h-0 flex flex-col">
-          {/* 搜索框和默认产量 */}
+          {/* Search bar and default rate */}
           <div className="flex gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -101,7 +99,8 @@ export default function AddTargetDialogGrid({
             </div>
           </div>
 
-          <div className="flex-1 rounded-md border overflow-auto">
+          {/* Stable scrollbar gutter prevents layout shift */}
+          <div className="flex-1 rounded-md border overflow-auto [scrollbar-gutter:stable]">
             {filteredItems.length === 0 ? (
               <div className="flex items-center justify-center h-full min-h-[400px]">
                 <p className="text-muted-foreground">
@@ -111,9 +110,9 @@ export default function AddTargetDialogGrid({
                 </p>
               </div>
             ) : (
-              <div className="p-3 grid grid-cols-5 xl:grid-cols-6 gap-3">
+              <div className="p-3 grid grid-cols-8 xl:grid-cols-10 gap-3">
                 {filteredItems.map((item) => (
-                  <ItemCard
+                  <ItemButton
                     key={item.id}
                     item={item}
                     isSelected={selectedItemId === item.id}
@@ -125,7 +124,7 @@ export default function AddTargetDialogGrid({
             )}
           </div>
 
-          {/* 底部提示和按钮 */}
+          {/* Footer hint and buttons */}
           <div className="flex items-center justify-between pt-3 border-t shrink-0">
             <div className="text-xs text-muted-foreground">
               {selectedItemId ? (
@@ -155,42 +154,51 @@ export default function AddTargetDialogGrid({
   );
 }
 
-type ItemCardProps = {
+type ItemButtonProps = {
   item: Item;
   isSelected: boolean;
   onClick: () => void;
   onDoubleClick: () => void;
 };
 
-function ItemCard({ item, isSelected, onClick, onDoubleClick }: ItemCardProps) {
+function ItemButton({
+  item,
+  isSelected,
+  onClick,
+  onDoubleClick,
+}: ItemButtonProps) {
   const { t } = useTranslation("dialog");
 
   return (
-    <Card
-      className={`cursor-pointer transition-all aspect-square ${
-        isSelected
-          ? "ring-2 ring-primary bg-primary/10 shadow-md"
-          : "hover:bg-accent/50 hover:shadow"
-      }`}
+    <Button
+      variant="outline"
+      className={`
+        relative aspect-square w-full h-auto p-3
+        transition-colors
+        ${
+          isSelected
+            ? "bg-primary/10 border-primary border-2"
+            : "hover:bg-accent active:bg-accent/70"
+        }
+      `}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       title={getItemName(item)}
     >
-      <div className="p-4 flex items-center justify-center h-full">
+      <div className="flex items-center justify-center w-full h-full">
         {item.iconUrl ? (
-          <div className="h-16 w-16 shrink-0 flex items-center justify-center">
-            <img
-              src={item.iconUrl}
-              alt={getItemName(item)}
-              className="h-full w-full object-contain"
-            />
-          </div>
+          <img
+            src={item.iconUrl}
+            alt={getItemName(item)}
+            className="w-full h-full object-contain"
+            draggable={false}
+          />
         ) : (
-          <div className="h-16 w-16 shrink-0 bg-muted rounded flex items-center justify-center">
+          <div className="w-full h-full bg-muted rounded flex items-center justify-center">
             <span className="text-xs text-muted-foreground">{t("noIcon")}</span>
           </div>
         )}
       </div>
-    </Card>
+    </Button>
   );
 }
