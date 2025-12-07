@@ -1,0 +1,1 @@
+{ "addTarget": "Добавить цель", "count": "{{current}} / {{max}}", "noIcon": "Нет", "rateInput": "Ввод скорости", "rateUnit": "в минуту", "removeTarget": "Удалить цель", "title": "Цели производства" }

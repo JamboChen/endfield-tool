@@ -1,0 +1,19 @@
+{
+  "calculationError": "生産計画の計算中にエラーが発生しました。目標とレシピの上書きを確認してください。",
+  "tabs": {
+    "merged": "統合",
+    "separated": "分離",
+    "table": "生産表",
+    "tree": "依存関係ツリー"
+  },
+  "title": "Endfield 工場生産計算機",
+  "warning": {
+    "title": "開発中",
+    "description": "データは未検証のため参考用です",
+    "close": "警告を閉じる"
+  },
+  "footer": {
+    "feedback": "フィードバック・ご提案:",
+    "unofficial": "非公式ファンメイドツール"
+  }
+}

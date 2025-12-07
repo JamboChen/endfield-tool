@@ -1,0 +1,19 @@
+{
+  "calculationError": "Ocurrió un error durante el cálculo del plan de producción. Por favor, revisa tus objetivos y las configuraciones de recetas.",
+  "tabs": {
+    "merged": "Combinado",
+    "separated": "Separado",
+    "table": "Tabla de Producción",
+    "tree": "Árbol de Dependencias"
+  },
+  "title": "Calculadora de Producción de Fábrica Endfield",
+  "warning": {
+    "title": "En Desarrollo",
+    "description": "Datos no verificados, solo como referencia",
+    "close": "Cerrar advertencia"
+  },
+  "footer": {
+    "feedback": "Comentarios y sugerencias:",
+    "unofficial": "Herramienta no oficial creada por fans"
+  }
+}

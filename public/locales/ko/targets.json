@@ -1,0 +1,1 @@
+{ "addTarget": "목표 추가", "count": "{{current}} / {{max}}", "noIcon": "없음", "rateInput": "비율 입력", "rateUnit": "분당", "removeTarget": "목표 제거", "title": "생산 목표" }

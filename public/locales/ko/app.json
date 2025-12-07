@@ -1,0 +1,19 @@
+{
+  "calculationError": "생산 계획 계산 중 오류가 발생했습니다. 목표와 제조법 설정을 확인하세요.",
+  "tabs": {
+    "merged": "통합",
+    "separated": "분리",
+    "table": "생산 표",
+    "tree": "의존성 트리"
+  },
+  "title": "Endfield 공장 생산 계산기",
+  "warning": {
+    "title": "개발 중",
+    "description": "데이터는 검증되지 않았으며 참고용입니다",
+    "close": "경고 닫기"
+  },
+  "footer": {
+    "feedback": "피드백 및 제안:",
+    "unofficial": "비공식 팬 제작 도구"
+  }
+}

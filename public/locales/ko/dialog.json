@@ -1,0 +1,13 @@
+{
+  "add": "추가",
+  "allItemsAdded": "모든 아이템이 추가되었습니다",
+  "cancel": "취소",
+  "clickToSelectDoubleClickToAdd": "",
+  "defaultRate": "기본 비율",
+  "hint": "💡 더블 클릭으로 빠르게 추가 | 선택됨: {{selected}}",
+  "noIcon": "없음",
+  "noMatchingItems": "일치하는 아이템을 찾을 수 없습니다",
+  "rateUnit": "분당",
+  "searchPlaceholder": "아이템 검색...",
+  "title": "목표 아이템 선택"
+}

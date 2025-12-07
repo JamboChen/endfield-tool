@@ -1,1 +1,15 @@
-{}
+{
+  "item_port_cmpt_mc_1": "Fitting Unit",
+  "item_port_dismantler_1": "Separating Unit",
+  "item_port_filling_pd_mc_1": "Filling Unit",
+  "item_port_furnance_1": "Refining Unit",
+  "item_port_grinder_1": "Shredding Unit",
+  "item_port_mix_pool_1": "Reactor Crucible",
+  "item_port_planter_1": "Planting Unit",
+  "item_port_seedcol_1": "Seed-Picking Unit",
+  "item_port_shaper_1": "Moulding Unit",
+  "item_port_thickener_1": "Grinding Unit",
+  "item_port_tools_asm_mc_1": "Packaging Unit",
+  "item_port_winder_1": "Gearing Unit",
+  "item_port_xiranite_oven_1": "Forge of the Sky"
+}

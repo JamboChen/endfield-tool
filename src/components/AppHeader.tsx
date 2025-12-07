@@ -34,6 +34,10 @@ export default function AppHeader({ onLanguageChange }: AppHeaderProps) {
               <SelectItem value="en">English</SelectItem>
               <SelectItem value="zh-Hans">简体中文</SelectItem>
               <SelectItem value="zh-Hant">繁體中文</SelectItem>
+              <SelectItem value="ja">日本語</SelectItem>
+              <SelectItem value="ko">한국어</SelectItem>
+              <SelectItem value="es">Español</SelectItem>
+              <SelectItem value="ru">Русский</SelectItem>
             </SelectContent>
           </Select>
           <a

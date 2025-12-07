@@ -1,0 +1,13 @@
+{
+  "add": "Agregar",
+  "allItemsAdded": "Todos los objetos han sido agregados",
+  "cancel": "Cancelar",
+  "clickToSelectDoubleClickToAdd": "",
+  "defaultRate": "Tasa predeterminada",
+  "hint": "💡 Doble clic para agregar rápidamente | Seleccionado: {{selected}}",
+  "noIcon": "Ninguno",
+  "noMatchingItems": "No se encontraron objetos coincidentes",
+  "rateUnit": "por min",
+  "searchPlaceholder": "Buscar objetos...",
+  "title": "Seleccionar objeto objetivo"
+}
