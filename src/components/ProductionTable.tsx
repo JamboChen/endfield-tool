@@ -293,7 +293,6 @@ const ProductionTable = memo(function ProductionTable({
                 ? line.facility.powerConsumption * line.facilityCount
                 : 0;
 
-              const isToggleDisabled = line.isTarget || line.isRawMaterial;
               const isManualRaw = line.isManualRawMaterial;
 
               // Determine row styling
@@ -311,39 +310,34 @@ const ProductionTable = memo(function ProductionTable({
                   {/* Raw material toggle */}
                   <TableCell className="p-2">
                     <div className="flex justify-center">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <Switch
-                              checked={isManualRaw}
-                              disabled={isToggleDisabled}
-                              onCheckedChange={() =>
-                                onToggleRawMaterial(line.item.id)
-                              }
-                              className="data-[state=checked]:bg-blue-500"
-                            />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {line.isTarget ? (
-                            <p className="text-xs">
-                              {t("table.cannotMarkTarget")}
-                            </p>
-                          ) : line.isRawMaterial ? (
-                            <p className="text-xs">
-                              {t("table.alreadyRawMaterial")}
-                            </p>
-                          ) : isManualRaw ? (
-                            <p className="text-xs">
-                              {t("table.unmarkRawMaterial")}
-                            </p>
-                          ) : (
-                            <p className="text-xs">
-                              {t("table.markAsRawMaterial")}
-                            </p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
+                      {/* Only show switch for items that can be manually toggled */}
+                      {!line.isTarget &&
+                        !(line.isRawMaterial && !line.isManualRawMaterial) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <Switch
+                                  checked={line.isManualRawMaterial}
+                                  onCheckedChange={() =>
+                                    onToggleRawMaterial(line.item.id)
+                                  }
+                                  className="data-[state=checked]:bg-blue-500"
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {line.isManualRawMaterial ? (
+                                <p className="text-xs">
+                                  {t("table.unmarkRawMaterial")}
+                                </p>
+                              ) : (
+                                <p className="text-xs">
+                                  {t("table.markAsRawMaterial")}
+                                </p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                     </div>
                   </TableCell>
 
