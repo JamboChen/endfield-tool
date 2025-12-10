@@ -1,5 +1,6 @@
 import {
   calculateProductionPlan,
+  smartRecipeSelector,
   type UnifiedProductionPlan,
 } from "../lib/calculator";
 import { items, recipes, facilities } from "../data";
@@ -35,7 +36,7 @@ export function useProductionPlan() {
           recipes,
           facilities,
           recipeOverrides,
-          undefined,
+          smartRecipeSelector,
           manualRawMaterials,
         );
 

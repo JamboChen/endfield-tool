@@ -40,11 +40,44 @@ export type UnifiedProductionPlan = {
 };
 
 export type RecipeSelector = (
-  itemId: ItemId,
   availableRecipes: Recipe[],
+  visitedPath?: Set<ItemId>,
 ) => Recipe;
 
-const defaultRecipeSelector: RecipeSelector = (_itemId, recipes) => recipes[0];
+const defaultRecipeSelector: RecipeSelector = (recipes) => recipes[0];
+
+export const smartRecipeSelector: RecipeSelector = (recipes, visitedPath) => {
+  // If no visited path provided, fall back to first recipe
+  if (!visitedPath || visitedPath.size === 0) {
+    return defaultRecipeSelector(recipes);
+  }
+
+  // Find recipes that don't create circular dependencies
+  const nonCircularRecipes = recipes.filter((recipe) => {
+    // Check if any input would create a circular dependency with visited path
+    const hasCircularInput = recipe.inputs.some((input) =>
+      visitedPath.has(input.itemId),
+    );
+
+    // Check if any output (other than the main product) would create a circular dependency with visited path
+    const hasCircularOutput = recipe.outputs.some((output) =>
+      visitedPath.has(output.itemId),
+    );
+
+    // Check if recipe has self-loop: same item appears in both inputs and outputs
+    const hasSelfLoop = recipe.inputs.some((input) =>
+      recipe.outputs.some((output) => output.itemId === input.itemId),
+    );
+
+    const hasCircular = hasCircularInput || hasCircularOutput || hasSelfLoop;
+    return !hasCircular;
+  });
+
+  // Return first non-circular recipe if available, otherwise fall back to first recipe
+  return nonCircularRecipes.length > 0
+    ? nonCircularRecipes[0]
+    : defaultRecipeSelector(recipes);
+};
 
 type ProductionMaps = {
   itemMap: Map<ItemId, Item>;
@@ -402,7 +435,7 @@ function calculateNode(
       throw new Error(`Override recipe not found for ${itemId}`);
     selectedRecipe = overrideRecipe;
   } else {
-    selectedRecipe = recipeSelector(itemId, availableRecipes);
+    selectedRecipe = recipeSelector(availableRecipes, visitedPath);
   }
 
   const facility = maps.facilityMap.get(selectedRecipe.facilityId);
