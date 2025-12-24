@@ -24,6 +24,23 @@ export type ProductionNode = {
 };
 
 /**
+ * Represents a detected production cycle in the dependency graph.
+ * Cycles are self-sufficient production loops that can produce output without external input.
+ */
+export type DetectedCycle = {
+  /** Unique identifier for this cycle */
+  cycleId: string;
+  /** Item IDs involved in the cycle, in dependency order */
+  involvedItemIds: ItemId[];
+  /** The item ID where the cycle was broken to create a tree structure */
+  breakPointItemId: ItemId;
+  /** The complete production nodes within the cycle (before breaking) */
+  cycleNodes: ProductionNode[];
+  /** Net output items per minute (items that can be extracted from the cycle) */
+  netOutputs: Map<ItemId, number>;
+};
+
+/**
  * The unified output structure for the production plan.
  * It contains both the raw dependency trees and the merged/flattened list for statistics.
  */
@@ -37,6 +54,8 @@ export type UnifiedProductionPlan = {
   /** Map of ItemId to the required rate of raw materials (items with no recipes). */
   rawMaterialRequirements: Map<ItemId, number>;
   manualRawMaterials?: Set<ItemId>;
+  /** Detected production cycles (for tree view visualization) */
+  detectedCycles: DetectedCycle[];
 };
 
 export type RecipeSelector = (
@@ -319,7 +338,12 @@ function sortByLevelAndTier(
 function buildFinalPlanComponents(
   sortedKeys: string[],
   mergedNodes: Map<string, MergedNode>,
-): Omit<UnifiedProductionPlan, "dependencyRootNodes"> {
+): {
+  flatList: ProductionNode[];
+  totalPowerConsumption: number;
+  rawMaterialRequirements: Map<ItemId, number>;
+  detectedCycles: DetectedCycle[];
+} {
   const rawMaterialRequirements = new Map<ItemId, number>();
   let totalPowerConsumption = 0;
   const flatList: ProductionNode[] = [];
@@ -349,7 +373,12 @@ function buildFinalPlanComponents(
     });
   });
 
-  return { flatList, totalPowerConsumption, rawMaterialRequirements };
+  return {
+    flatList,
+    totalPowerConsumption,
+    rawMaterialRequirements,
+    detectedCycles: [],
+  };
 }
 
 /**
@@ -470,7 +499,207 @@ function calculateNode(
 }
 
 /**
+ * Reconstructs a production cycle by recalculating nodes without breaking the loop.
+ * This is used to capture the complete cycle structure for visualization purposes.
+ */
+function reconstructCycle(
+  cyclePath: ItemId[],
+  maps: ProductionMaps,
+  recipeOverrides?: Map<ItemId, RecipeId>,
+  recipeSelector: RecipeSelector = defaultRecipeSelector,
+  manualRawMaterials?: Set<ItemId>,
+): ProductionNode[] {
+  const cycleNodes: ProductionNode[] = [];
+  const pathSet = new Set(cyclePath);
+
+  // Calculate each node in the cycle, treating cycle members as valid dependencies
+  for (let i = 0; i < cyclePath.length; i++) {
+    const itemId = cyclePath[i];
+    const nextItemId = cyclePath[(i + 1) % cyclePath.length];
+
+    const item = maps.itemMap.get(itemId);
+    if (!item) continue;
+
+    // Skip manually marked raw materials
+    if (manualRawMaterials?.has(itemId)) continue;
+
+    const availableRecipes = Array.from(maps.recipeMap.values()).filter((r) =>
+      r.outputs.some((o) => o.itemId === itemId),
+    );
+
+    if (availableRecipes.length === 0) continue;
+
+    // Select recipe
+    let selectedRecipe: Recipe;
+    if (recipeOverrides?.has(itemId)) {
+      const overrideRecipe = maps.recipeMap.get(recipeOverrides.get(itemId)!);
+      if (!overrideRecipe) continue;
+      selectedRecipe = overrideRecipe;
+    } else {
+      // Filter recipes that consume the next item in the cycle (to maintain cycle continuity)
+      const cycleCompatibleRecipes = availableRecipes.filter((recipe) =>
+        recipe.inputs.some((input) => input.itemId === nextItemId),
+      );
+
+      // Use the provided recipe selector on filtered recipes
+      const recipesToSelect =
+        cycleCompatibleRecipes.length > 0
+          ? cycleCompatibleRecipes
+          : availableRecipes;
+
+      // Create a visited path for the selector (all items in cycle up to current)
+      const selectorVisitedPath = new Set(cyclePath.slice(0, i + 1));
+      selectedRecipe = recipeSelector(recipesToSelect, selectorVisitedPath);
+    }
+
+    const facility = maps.facilityMap.get(selectedRecipe.facilityId);
+    if (!facility) continue;
+
+    // For cycle reconstruction, use a nominal rate (1 item/min)
+    const nominalRate = 1;
+    const outputAmount =
+      selectedRecipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
+    const cyclesPerMinute = 60 / selectedRecipe.craftingTime;
+    const outputRatePerFacility = outputAmount * cyclesPerMinute;
+    const facilityCount = nominalRate / outputRatePerFacility;
+
+    // Create simplified dependencies (just references to items, not full recursion)
+    const dependencies = selectedRecipe.inputs.map((input) => {
+      const depItem = maps.itemMap.get(input.itemId);
+      if (!depItem)
+        throw new Error(`Dependency item not found: ${input.itemId}`);
+
+      return {
+        item: depItem,
+        targetRate: input.amount * cyclesPerMinute * facilityCount,
+        recipe: null,
+        facility: null,
+        facilityCount: 0,
+        isRawMaterial: !pathSet.has(input.itemId), // Items outside cycle are raw materials
+        isTarget: false,
+        dependencies: [],
+      } as ProductionNode;
+    });
+
+    cycleNodes.push({
+      item,
+      targetRate: nominalRate,
+      recipe: selectedRecipe,
+      facility,
+      facilityCount,
+      isRawMaterial: false,
+      isTarget: false,
+      dependencies,
+    });
+  }
+
+  return cycleNodes;
+}
+
+/**
+ * Calculates net outputs of a production cycle.
+ * Net output is what can be extracted from the cycle while maintaining it.
+ */
+function calculateCycleNetOutputs(
+  cycleNodes: ProductionNode[],
+): Map<ItemId, number> {
+  const production = new Map<ItemId, number>();
+  const consumption = new Map<ItemId, number>();
+
+  console.log("=== 开始计算净产出 ===");
+  console.log("循环节点数量:", cycleNodes.length);
+
+  // Calculate per-cycle production and consumption
+  cycleNodes.forEach((node, index) => {
+    console.log(`\n节点 ${index}: ${node.item.id}`);
+
+    if (!node.recipe) {
+      console.log("  没有配方，跳过");
+      return;
+    }
+
+    console.log(`  配方: ${node.recipe.id}`);
+
+    node.recipe.outputs.forEach((output) => {
+      console.log(`  产出: ${output.itemId} x${output.amount}`);
+      production.set(
+        output.itemId,
+        (production.get(output.itemId) || 0) + output.amount,
+      );
+    });
+
+    node.recipe.inputs.forEach((input) => {
+      console.log(`  消耗: ${input.itemId} x${input.amount}`);
+      consumption.set(
+        input.itemId,
+        (consumption.get(input.itemId) || 0) + input.amount,
+      );
+    });
+  });
+
+  console.log("\n=== 汇总 ===");
+  console.log("总产出:");
+  production.forEach((amount, itemId) => {
+    console.log(`  ${itemId}: ${amount}`);
+  });
+
+  console.log("总消耗:");
+  consumption.forEach((amount, itemId) => {
+    console.log(`  ${itemId}: ${amount}`);
+  });
+
+  // Calculate net per cycle
+  const netOutputs = new Map<ItemId, number>();
+  production.forEach((produced, itemId) => {
+    const consumed = consumption.get(itemId) || 0;
+    const net = produced - consumed;
+    console.log(`\n${itemId}: 产出${produced} - 消耗${consumed} = 净值${net}`);
+
+    if (Math.abs(net) > 0.001) {
+      console.log(`  ✓ 添加到净产出`);
+      netOutputs.set(itemId, net);
+    } else {
+      console.log(`  ✗ 净值太小，忽略`);
+    }
+  });
+
+  console.log("\n最终净产出 Map 大小:", netOutputs.size);
+  console.log("=== 计算完成 ===\n");
+
+  return netOutputs;
+}
+
+/**
+ * Generates a unique cycle ID based on the involved items.
+ */
+function generateCycleId(involvedItemIds: ItemId[]): string {
+  // Sort to ensure consistent ID regardless of detection order
+  const sorted = [...involvedItemIds].sort();
+  return `cycle-${sorted.join("-")}`;
+}
+
+/**
+ * Checks if a cycle has already been detected based on involved items.
+ */
+function isCycleDuplicate(
+  cycle: DetectedCycle,
+  existingCycles: DetectedCycle[],
+): boolean {
+  const cycleItemsSet = new Set(cycle.involvedItemIds);
+
+  return existingCycles.some((existing) => {
+    if (existing.involvedItemIds.length !== cycle.involvedItemIds.length) {
+      return false;
+    }
+    return existing.involvedItemIds.every((itemId) =>
+      cycleItemsSet.has(itemId),
+    );
+  });
+}
+
+/**
  * Generates the raw, unmerged dependency trees for all targets.
+ * Also detects and collects information about production cycles.
  */
 function buildDependencyTree(
   targets: Array<{ itemId: ItemId; rate: number }>,
@@ -478,19 +707,150 @@ function buildDependencyTree(
   recipeOverrides?: Map<ItemId, RecipeId>,
   recipeSelector: RecipeSelector = defaultRecipeSelector,
   manualRawMaterials?: Set<ItemId>,
-): ProductionNode[] {
-  return targets.map((t) =>
-    calculateNode(
-      t.itemId,
-      t.rate,
-      maps,
-      recipeOverrides,
-      recipeSelector,
-      new Set(),
-      true,
-      manualRawMaterials,
-    ),
+): { rootNodes: ProductionNode[]; detectedCycles: DetectedCycle[] } {
+  const detectedCycles: DetectedCycle[] = [];
+
+  // Modified version of calculateNode that collects cycle info
+  const calculateNodeWithCycleDetection = (
+    itemId: ItemId,
+    requiredRate: number,
+    visitedPath: Set<ItemId>,
+    isDirectTarget: boolean,
+  ): ProductionNode => {
+    const item = maps.itemMap.get(itemId);
+    if (!item) throw new Error(`Item not found: ${itemId}`);
+
+    // Check for circular dependency BEFORE creating the break
+    if (visitedPath.has(itemId)) {
+      // Reconstruct the cycle path
+      const pathArray = Array.from(visitedPath);
+      const cycleStartIndex = pathArray.indexOf(itemId);
+      const cyclePath = pathArray.slice(cycleStartIndex);
+
+      // Generate cycle information
+      const cycleId = generateCycleId(cyclePath);
+      const cycleNodes = reconstructCycle(
+        cyclePath,
+        maps,
+        recipeOverrides,
+        recipeSelector,
+        manualRawMaterials,
+      );
+      const netOutputs = calculateCycleNetOutputs(cycleNodes);
+
+      const cycle: DetectedCycle = {
+        cycleId,
+        involvedItemIds: cyclePath,
+        breakPointItemId: itemId,
+        cycleNodes,
+        netOutputs,
+      };
+
+      // Only add if not duplicate
+      if (!isCycleDuplicate(cycle, detectedCycles)) {
+        detectedCycles.push(cycle);
+      }
+
+      // Return the break node (same as original calculateNode logic)
+      return {
+        item,
+        targetRate: requiredRate,
+        recipe: null,
+        facility: null,
+        facilityCount: 0,
+        isRawMaterial: true,
+        isTarget: false,
+        dependencies: [],
+      };
+    }
+
+    // Check if manually marked as raw material
+    if (manualRawMaterials?.has(itemId)) {
+      return {
+        item,
+        targetRate: requiredRate,
+        recipe: null,
+        facility: null,
+        facilityCount: 0,
+        isRawMaterial: true,
+        isTarget: isDirectTarget,
+        dependencies: [],
+      };
+    }
+
+    const availableRecipes = Array.from(maps.recipeMap.values()).filter((r) =>
+      r.outputs.some((o) => o.itemId === itemId),
+    );
+
+    if (availableRecipes.length === 0) {
+      return {
+        item,
+        targetRate: requiredRate,
+        recipe: null,
+        facility: null,
+        facilityCount: 0,
+        isRawMaterial: true,
+        isTarget: isDirectTarget,
+        dependencies: [],
+      };
+    }
+
+    // Add current item to visited path BEFORE recipe selection
+    const newVisitedPath = new Set(visitedPath);
+    newVisitedPath.add(itemId);
+
+    // Recipe selection logic
+    let selectedRecipe: Recipe;
+    if (recipeOverrides?.has(itemId)) {
+      const overrideRecipe = maps.recipeMap.get(recipeOverrides.get(itemId)!);
+      if (!overrideRecipe)
+        throw new Error(`Override recipe not found for ${itemId}`);
+      selectedRecipe = overrideRecipe;
+    } else {
+      selectedRecipe = recipeSelector(availableRecipes, newVisitedPath);
+    }
+
+    const facility = maps.facilityMap.get(selectedRecipe.facilityId);
+    if (!facility)
+      throw new Error(`Facility not found: ${selectedRecipe.facilityId}`);
+
+    // Production rate calculation
+    const outputAmount =
+      selectedRecipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
+    const cyclesPerMinute = 60 / selectedRecipe.craftingTime;
+    const outputRatePerFacility = outputAmount * cyclesPerMinute;
+
+    // Calculate required facilities
+    const facilityCount = requiredRate / outputRatePerFacility;
+
+    // Recursively calculate dependencies using the wrapper function
+    const dependencies = selectedRecipe.inputs.map((input) => {
+      const inputRate = input.amount * cyclesPerMinute * facilityCount;
+      return calculateNodeWithCycleDetection(
+        input.itemId,
+        inputRate,
+        newVisitedPath,
+        false,
+      );
+    });
+
+    return {
+      item,
+      targetRate: requiredRate,
+      recipe: selectedRecipe,
+      facility,
+      facilityCount,
+      isRawMaterial: false,
+      isTarget: isDirectTarget,
+      dependencies,
+    };
+  };
+
+  const rootNodes = targets.map((t) =>
+    calculateNodeWithCycleDetection(t.itemId, t.rate, new Set(), true),
   );
+
+  return { rootNodes, detectedCycles };
 }
 
 /**
@@ -535,24 +895,26 @@ export function calculateProductionPlan(
     facilityMap: new Map(facilities.map((f) => [f.id, f])),
   };
 
-  // 1. Build the raw, unmerged dependency tree(s).
-  const dependencyRootNodes = buildDependencyTree(
-    targets,
-    maps,
-    recipeOverrides,
-    recipeSelector,
-    manualRawMaterials,
-  );
+  // 1. Build the raw, unmerged dependency tree(s) and collect cycle information.
+  const { rootNodes: dependencyRootNodes, detectedCycles } =
+    buildDependencyTree(
+      targets,
+      maps,
+      recipeOverrides,
+      recipeSelector,
+      manualRawMaterials,
+    );
 
   // 2. Process the merged and flattened plan for statistics and tables.
   const { flatList, totalPowerConsumption, rawMaterialRequirements } =
     processMergedPlan(dependencyRootNodes);
 
-  // 3. Return the unified plan.
+  // 3. Return the unified plan with cycle information.
   return {
     dependencyRootNodes,
     flatList,
     totalPowerConsumption,
     rawMaterialRequirements,
+    detectedCycles,
   };
 }
