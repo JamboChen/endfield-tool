@@ -1,7 +1,7 @@
 import { Position, MarkerType } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 import type { Item, Facility } from "@/types";
-import type { ProductionNode } from "@/lib/calculator";
+import type { DetectedCycle, ProductionNode } from "@/lib/calculator";
 import type {
   FlowNodeData,
   FlowProductionNode,
@@ -14,6 +14,7 @@ import {
   aggregateProductionNodes,
   makeNodeIdFromKey,
   findTargetsWithDownstream,
+  createCycleInfo,
 } from "./flow-utils";
 
 /**
@@ -37,8 +38,11 @@ export function mapPlanToFlowMerged(
   rootNodes: ProductionNode[],
   items: Item[],
   facilities: Facility[],
+  detectedCycles: DetectedCycle[] = [],
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
   const nodes: Node<FlowNodeData>[] = [];
+  // Create item map for cycle display name generation
+  const itemMap = new Map(items.map((item) => [item.id, item]));
   const edges: Edge[] = [];
   const nodeKeyToId = new Map<string, string>();
   const targetSinkNodes: Node<TargetSinkNodeData>[] = [];
@@ -111,6 +115,12 @@ export function mapPlanToFlowMerged(
         facilityCount: aggregatedData.totalFacilityCount,
       };
 
+      const cycleInfo = createCycleInfo(
+        aggregatedData.node,
+        detectedCycles,
+        itemMap,
+      );
+
       nodes.push({
         id: nodeId,
         type: "productionNode",
@@ -121,6 +131,7 @@ export function mapPlanToFlowMerged(
           facilities,
           isDirectTarget,
           directTargetRate,
+          cycleInfo,
         },
         position: { x: 0, y: 0 },
         sourcePosition: Position.Right,
@@ -254,6 +265,84 @@ export function mapPlanToFlowMerged(
     }
   });
 
+  // Add cycle closure edges to visualize loops
+  detectedCycles.forEach((cycle) => {
+    // The break point is where the cycle was interrupted
+    const breakPointItemId = cycle.breakPointItemId;
+
+    // Find the node that produces the break point item (the last node in the cycle)
+    // This is the node that should connect back to the break point
+    const cycleLength = cycle.involvedItemIds.length;
+    if (cycleLength < 2) return; // Need at least 2 nodes for a cycle
+
+    // Get the item that comes before the break point in the cycle
+    const breakPointIndex = cycle.involvedItemIds.indexOf(breakPointItemId);
+    const producerIndex = (breakPointIndex - 1 + cycleLength) % cycleLength;
+    const producerItemId = cycle.involvedItemIds[producerIndex];
+
+    // Find the corresponding cycle node to get the recipe
+    const producerNode = cycle.cycleNodes.find(
+      (node) => node.item.id === producerItemId,
+    );
+
+    if (!producerNode) return;
+
+    // Create keys for both nodes
+    const breakPointKey = createFlowNodeKey({
+      item: { id: breakPointItemId } as Item,
+      isRawMaterial: true,
+      recipe: null,
+    } as ProductionNode);
+
+    const producerKey = createFlowNodeKey({
+      item: { id: producerItemId } as Item,
+      isRawMaterial: false,
+      recipe: producerNode.recipe,
+    } as ProductionNode);
+
+    const breakPointNodeId = makeNodeIdFromKey(breakPointKey);
+    const producerNodeId = makeNodeIdFromKey(producerKey);
+
+    // Check if both nodes exist
+    const breakPointExists = nodes.some((n) => n.id === breakPointNodeId);
+    const producerExists = nodes.some((n) => n.id === producerNodeId);
+
+    if (!breakPointExists || !producerExists) return;
+
+    // Calculate flow rate for the cycle edge
+    // This should be the rate at which the break point item is produced
+    const breakPointNode = cycle.cycleNodes.find(
+      (node) => node.item.id === breakPointItemId,
+    );
+    const flowRate = breakPointNode?.targetRate || 1;
+
+    // Add the cycle closure edge
+    edges.push({
+      id: `cycle-closure-${cycle.cycleId}`,
+      source: producerNodeId,
+      target: breakPointNodeId,
+      type: "default",
+      animated: true,
+      style: {
+        stroke: "#a855f7", // purple-500
+        strokeWidth: 2.5,
+        strokeDasharray: "5,5",
+      },
+      label: `🔄 ${flowRate.toFixed(2)} /min`,
+      labelStyle: {
+        fill: "#a855f7",
+        fontWeight: 600,
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: "#a855f7",
+      },
+      data: { flowRate, isCycleClosure: true },
+    });
+    console.log("Cycle:", cycle.cycleId);
+    console.log("Break point:", breakPointNodeId, "exists:", breakPointExists);
+    console.log("Producer:", producerNodeId, "exists:", producerExists);
+  });
   const styledEdges = applyEdgeStyling(edges);
 
   return {

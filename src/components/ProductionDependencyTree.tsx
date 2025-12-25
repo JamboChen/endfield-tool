@@ -63,8 +63,18 @@ export default function ProductionDependencyTree({
     // Select the appropriate mapper based on visualization mode
     const flowData =
       visualizationMode === "separated"
-        ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
-        : mapPlanToFlowMerged(plan.dependencyRootNodes, items, facilities);
+        ? mapPlanToFlowSeparated(
+            plan.dependencyRootNodes,
+            items,
+            facilities,
+            plan.detectedCycles,
+          )
+        : mapPlanToFlowMerged(
+            plan.dependencyRootNodes,
+            items,
+            facilities,
+            plan.detectedCycles,
+          );
 
     // Apply layout algorithm to position nodes
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(

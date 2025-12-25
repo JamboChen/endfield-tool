@@ -69,7 +69,7 @@ export default function CustomProductionNode({
   sourcePosition = Position.Right,
   targetPosition = Position.Left,
 }: NodeProps<FlowProductionNode>) {
-  const { productionNode: node, isCircular, items } = data;
+  const { productionNode: node, isCircular, items, cycleInfo } = data;
   const { t } = useTranslation("production");
 
   /**
@@ -91,13 +91,16 @@ export default function CustomProductionNode({
 
   // Adjust border colors based on node type for better visual distinction
   let borderColor = "border-gray-300 dark:border-gray-600";
-  if (!node.isRawMaterial && node.recipe) {
-    // Blue border for production nodes, red for circular dependencies
-    borderColor = isCircular
-      ? "border-red-500"
-      : "border-blue-600 dark:border-blue-400";
+  // Cycle nodes get purple border
+  if (cycleInfo?.isPartOfCycle) {
+    borderColor = cycleInfo.isBreakPoint
+      ? "border-purple-500 border-dashed" // Dashed for break point
+      : "border-purple-400"; // Solid for other cycle members
+  } else if (!node.isRawMaterial && node.recipe) {
+    // Regular production nodes get blue border
+    borderColor = "border-blue-600 dark:border-blue-400";
   } else if (node.isRawMaterial) {
-    // Green border for raw material nodes
+    // Raw materials get green border
     borderColor = "border-green-600 dark:border-green-400";
   }
 
@@ -108,11 +111,31 @@ export default function CustomProductionNode({
         {t("tree.item")}: {itemName}
       </div>
       {node.isRawMaterial ? (
-        <p className="text-muted-foreground">
-          {isCircular
-            ? t("tree.circularRawMaterial")
-            : t("tree.trueRawMaterial")}
-        </p>
+        <div>
+          {cycleInfo?.isPartOfCycle ? (
+            <div>
+              <p className="text-purple-600 dark:text-purple-400 font-medium mb-1">
+                🔄 {t("tree.partOfCycle")}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {cycleInfo.isBreakPoint
+                  ? t("tree.cycleBreakPointDesc")
+                  : t("tree.cycleMemberDesc")}
+              </p>
+              {cycleInfo.cycleDisplayName && (
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  {cycleInfo.cycleDisplayName}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">
+              {isCircular
+                ? t("tree.circularRawMaterial")
+                : t("tree.trueRawMaterial")}
+            </p>
+          )}
+        </div>
       ) : node.recipe ? (
         <>
           <RecipeIOFull recipe={node.recipe} getItemById={getItemById} />
@@ -244,6 +267,30 @@ export default function CustomProductionNode({
             {isSeparated && data.isPartialLoad && (
               <div className={partialLoadClasses}>
                 ⚡ {t("tree.partialLoad")}
+              </div>
+            )}
+            {/* Cycle indicator - replaces the old circular warning */}
+            {cycleInfo?.isPartOfCycle && (
+              <div className="mt-2 bg-purple-100/70 dark:bg-purple-900/50 rounded px-2 py-1">
+                <div className="flex items-center justify-center gap-1 text-purple-700 dark:text-purple-300 text-[10px] font-medium">
+                  <span>🔄</span>
+                  <span>
+                    {cycleInfo.isBreakPoint
+                      ? t("tree.cycleBreakPoint")
+                      : t("tree.cycleMember")}
+                  </span>
+                </div>
+                {cycleInfo.cycleDisplayName && (
+                  <div className="text-center text-[9px] text-purple-600 dark:text-purple-400 mt-0.5">
+                    {cycleInfo.cycleDisplayName}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Keep old circular warning only for non-cycle circular dependencies (if any) */}
+            {isCircular && !cycleInfo?.isPartOfCycle && (
+              <div className={circularWarningClasses}>
+                ⚠️ {t("tree.circularWarning")}
               </div>
             )}
             {/* Circular dependency warning */}
