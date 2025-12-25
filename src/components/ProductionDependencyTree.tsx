@@ -14,6 +14,7 @@ import type { Item, Facility } from "@/types";
 import type { UnifiedProductionPlan } from "@/lib/calculator";
 import CustomProductionNode from "./tree-node/CustomProductionNode";
 import CustomTargetNode from "./tree-node/CustomTargetNode";
+import CustomCycleNode from "./tree-node/CustomCycleNode";
 import type {
   FlowProductionNode,
   VisualizationMode,
@@ -105,6 +106,7 @@ export default function ProductionDependencyTree({
     () => ({
       productionNode: CustomProductionNode,
       targetSink: CustomTargetNode,
+      cycleNode: CustomCycleNode,
     }),
     [],
   );
