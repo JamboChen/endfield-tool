@@ -382,123 +382,6 @@ function buildFinalPlanComponents(
 }
 
 /**
- * Recursively calculates a single production node, determining required facilities and inputs.
- * Handles circular dependencies by treating the looped item as a raw material for that branch.
- */
-function calculateNode(
-  itemId: ItemId,
-  requiredRate: number,
-  maps: ProductionMaps,
-  recipeOverrides?: Map<ItemId, RecipeId>,
-  recipeSelector: RecipeSelector = defaultRecipeSelector,
-  visitedPath: Set<ItemId> = new Set(),
-  isDirectTarget: boolean = false,
-  manualRawMaterials?: Set<ItemId>,
-): ProductionNode {
-  const item = maps.itemMap.get(itemId);
-  if (!item) throw new Error(`Item not found: ${itemId}`);
-
-  // Check for circular dependency
-  if (visitedPath.has(itemId)) {
-    return {
-      item,
-      targetRate: requiredRate,
-      recipe: null,
-      facility: null,
-      facilityCount: 0,
-      isRawMaterial: true,
-      isTarget: false,
-      dependencies: [],
-    };
-  }
-
-  // Check if manually marked as raw material
-  if (manualRawMaterials?.has(itemId)) {
-    return {
-      item,
-      targetRate: requiredRate,
-      recipe: null,
-      facility: null,
-      facilityCount: 0,
-      isRawMaterial: true,
-      isTarget: isDirectTarget,
-      dependencies: [],
-    };
-  }
-
-  const availableRecipes = Array.from(maps.recipeMap.values()).filter((r) =>
-    r.outputs.some((o) => o.itemId === itemId),
-  );
-
-  if (availableRecipes.length === 0) {
-    return {
-      item,
-      targetRate: requiredRate,
-      recipe: null,
-      facility: null,
-      facilityCount: 0,
-      isRawMaterial: true,
-      isTarget: isDirectTarget,
-      dependencies: [],
-    };
-  }
-
-  // Add current item to visited path BEFORE recipe selection
-  const newVisitedPath = new Set(visitedPath);
-  newVisitedPath.add(itemId);
-
-  // Recipe selection logic - now with current item in visitedPath
-  let selectedRecipe: Recipe;
-  if (recipeOverrides?.has(itemId)) {
-    const overrideRecipe = maps.recipeMap.get(recipeOverrides.get(itemId)!);
-    if (!overrideRecipe)
-      throw new Error(`Override recipe not found for ${itemId}`);
-    selectedRecipe = overrideRecipe;
-  } else {
-    selectedRecipe = recipeSelector(availableRecipes, newVisitedPath);
-  }
-
-  const facility = maps.facilityMap.get(selectedRecipe.facilityId);
-  if (!facility)
-    throw new Error(`Facility not found: ${selectedRecipe.facilityId}`);
-
-  // Production rate calculation
-  const outputAmount =
-    selectedRecipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
-  const cyclesPerMinute = 60 / selectedRecipe.craftingTime;
-  const outputRatePerFacility = outputAmount * cyclesPerMinute;
-
-  // Calculate required facilities
-  const facilityCount = requiredRate / outputRatePerFacility;
-
-  // Recursively calculate dependencies (inputs)
-  const dependencies = selectedRecipe.inputs.map((input) => {
-    const inputRate = input.amount * cyclesPerMinute * facilityCount;
-    return calculateNode(
-      input.itemId,
-      inputRate,
-      maps,
-      recipeOverrides,
-      recipeSelector,
-      newVisitedPath,
-      false,
-      manualRawMaterials,
-    );
-  });
-
-  return {
-    item,
-    targetRate: requiredRate,
-    recipe: selectedRecipe,
-    facility,
-    facilityCount,
-    isRawMaterial: false,
-    isTarget: isDirectTarget,
-    dependencies,
-  };
-}
-
-/**
  * Reconstructs a production cycle by recalculating nodes without breaking the loop.
  * This is used to capture the complete cycle structure for visualization purposes.
  */
@@ -606,22 +489,13 @@ function calculateCycleNetOutputs(
   const production = new Map<ItemId, number>();
   const consumption = new Map<ItemId, number>();
 
-  console.log("=== 开始计算净产出 ===");
-  console.log("循环节点数量:", cycleNodes.length);
-
   // Calculate per-cycle production and consumption
-  cycleNodes.forEach((node, index) => {
-    console.log(`\n节点 ${index}: ${node.item.id}`);
-
+  cycleNodes.forEach((node) => {
     if (!node.recipe) {
-      console.log("  没有配方，跳过");
       return;
     }
 
-    console.log(`  配方: ${node.recipe.id}`);
-
     node.recipe.outputs.forEach((output) => {
-      console.log(`  产出: ${output.itemId} x${output.amount}`);
       production.set(
         output.itemId,
         (production.get(output.itemId) || 0) + output.amount,
@@ -629,7 +503,6 @@ function calculateCycleNetOutputs(
     });
 
     node.recipe.inputs.forEach((input) => {
-      console.log(`  消耗: ${input.itemId} x${input.amount}`);
       consumption.set(
         input.itemId,
         (consumption.get(input.itemId) || 0) + input.amount,
@@ -637,34 +510,16 @@ function calculateCycleNetOutputs(
     });
   });
 
-  console.log("\n=== 汇总 ===");
-  console.log("总产出:");
-  production.forEach((amount, itemId) => {
-    console.log(`  ${itemId}: ${amount}`);
-  });
-
-  console.log("总消耗:");
-  consumption.forEach((amount, itemId) => {
-    console.log(`  ${itemId}: ${amount}`);
-  });
-
   // Calculate net per cycle
   const netOutputs = new Map<ItemId, number>();
   production.forEach((produced, itemId) => {
     const consumed = consumption.get(itemId) || 0;
     const net = produced - consumed;
-    console.log(`\n${itemId}: 产出${produced} - 消耗${consumed} = 净值${net}`);
 
     if (Math.abs(net) > 0.001) {
-      console.log(`  ✓ 添加到净产出`);
       netOutputs.set(itemId, net);
-    } else {
-      console.log(`  ✗ 净值太小，忽略`);
     }
   });
-
-  console.log("\n最终净产出 Map 大小:", netOutputs.size);
-  console.log("=== 计算完成 ===\n");
 
   return netOutputs;
 }
