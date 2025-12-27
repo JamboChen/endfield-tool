@@ -191,3 +191,10 @@ export interface CycleInfo {
   /** Display name for the cycle (e.g., "Seed-Plant Cycle") */
   cycleDisplayName?: string;
 }
+
+declare module "@xyflow/react" {
+  interface EdgeData {
+    flowRate?: number;
+    isPartOfCycle?: boolean;
+  }
+}

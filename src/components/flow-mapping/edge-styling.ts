@@ -1,5 +1,4 @@
 import type { Edge } from "@xyflow/react";
-import { MarkerType } from "@xyflow/react";
 
 /**
  * Applies dynamic styling to edges based on their flow rates.
@@ -17,77 +16,51 @@ import { MarkerType } from "@xyflow/react";
  * @returns The same edges array with style properties applied
  */
 export function applyEdgeStyling(edges: Edge[]): Edge[] {
-  if (edges.length === 0) {
-    return edges;
-  }
+  if (edges.length === 0) return edges;
 
-  // Collect all flow rates for normalization
-  const flowRates: number[] = edges
-    .map((e) => (e.data as { flowRate?: number } | undefined)?.flowRate ?? 0)
-    .filter((rate) => rate > 0);
+  // Find max flow rate for normalization (excluding target sink edges)
+  const flowRates = edges
+    .filter((e) => e.data?.flowRate !== undefined && !e.animated)
+    .map((e) => e.data.flowRate);
 
-  if (flowRates.length === 0) {
-    return edges;
-  }
+  const maxFlowRate = Math.max(...flowRates, 1);
 
-  const maxFlow = Math.max(...flowRates);
-  const minFlow = Math.min(...flowRates);
-  const flowRange = maxFlow - minFlow || 1; // Prevent division by zero
+  return edges.map((edge) => {
+    // Skip edges that already have custom styling (like target sink edges)
+    if (edge.animated && edge.style?.stroke === "#10b981") {
+      return edge;
+    }
 
-  const fixedMarkerSize = 8; // Fixed arrow size for all edges
+    const flowRate = edge.data?.flowRate || 0;
+    const isPartOfCycle = edge.data?.isPartOfCycle || false;
 
-  edges.forEach((edge) => {
-    const flowRate =
-      (edge.data as { flowRate?: number } | undefined)?.flowRate ?? 0;
-    const normalizedFlow = (flowRate - minFlow) / flowRange;
+    // Calculate stroke width based on flow rate (1-4 range)
+    const normalizedRate = flowRate / maxFlowRate;
+    const strokeWidth = 1 + normalizedRate * 3;
 
-    // 1. Non-linear width mapping (square root provides smoother visual scaling)
-    const minWidth = 2;
-    const maxWidth = 8;
-    const strokeWidth =
-      minWidth + Math.sqrt(normalizedFlow) * (maxWidth - minWidth);
+    // Apply cycle styling
+    if (isPartOfCycle) {
+      return {
+        ...edge,
+        animated: true,
+        style: {
+          strokeWidth,
+          stroke: "#a855f7", // Purple color for cycle edges
+        },
+        markerEnd: {
+          ...edge.markerEnd,
+          color: "#a855f7",
+        },
+      };
+    }
 
-    // 2. Color calculation using HSL for better visual gradation
-    // Higher flow = darker and more saturated blue
-    const minLightness = 45;
-    const maxLightness = 85;
-    const lightness =
-      minLightness + normalizedFlow * (maxLightness - minLightness);
-
-    const minSaturation = 70;
-    const maxSaturation = 95;
-    const saturation =
-      minSaturation +
-      Math.sqrt(normalizedFlow) * (maxSaturation - minSaturation);
-
-    const edgeColor = `hsl(217, ${saturation}%, ${lightness}%)`;
-
-    // 3. Apply stroke styling
-    edge.style = {
-      strokeWidth,
-      stroke: edgeColor,
-    };
-
-    // 4. Apply fixed-size arrow marker with matching color
-    edge.markerEnd = {
-      type: MarkerType.ArrowClosed,
-      color: edgeColor,
-      width: fixedMarkerSize,
-      height: fixedMarkerSize,
-    };
-
-    // 5. Style label for better readability
-    edge.labelStyle = {
-      fontSize: 11,
-      fontWeight: 600,
-      fill: edgeColor,
-    };
-
-    edge.labelBgStyle = {
-      fill: "white",
-      fillOpacity: 0.9,
+    // Regular edge styling
+    return {
+      ...edge,
+      style: {
+        strokeWidth,
+        stroke: "#64748b", // Default gray
+      },
     };
   });
-
-  return edges;
 }

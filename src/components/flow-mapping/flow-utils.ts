@@ -254,3 +254,56 @@ export function calculateCyclePowerConsumption(cycle: DetectedCycle): number {
 export function makeCycleNodeId(cycleId: string): string {
   return `cycle-${cycleId}`;
 }
+
+/**
+ * Determines if an edge is part of a production cycle.
+ *
+ * @param sourceItemId The item ID of the source node
+ * @param targetNodeId The React Flow node ID of the target
+ * @param nodeKeyToId Map from node keys to React Flow node IDs
+ * @param detectedCycles All detected cycles
+ * @returns True if this edge connects two nodes within the same cycle
+ */
+export function isEdgePartOfCycle(
+  sourceItemId: ItemId,
+  targetNodeId: string,
+  nodeKeyToId: Map<string, string>,
+  detectedCycles: DetectedCycle[],
+): boolean {
+  // Find which cycle (if any) contains the source item
+  const sourceCycle = detectedCycles.find((cycle) =>
+    cycle.involvedItemIds.includes(sourceItemId),
+  );
+
+  if (!sourceCycle) {
+    return false;
+  }
+
+  // Extract item ID from target node ID by looking up in the map
+  let targetItemId: ItemId | null = null;
+
+  for (const [key, nodeId] of nodeKeyToId.entries()) {
+    if (nodeId === targetNodeId) {
+      // Extract item ID from the key (format: "itemId__recipeId__rawFlag")
+      targetItemId = key.split("__")[0] as ItemId;
+      break;
+    }
+  }
+
+  if (!targetItemId) {
+    return false;
+  }
+
+  // Check if both source and target are in the same cycle
+  const isTargetInCycle = sourceCycle.involvedItemIds.includes(targetItemId);
+
+  console.log(
+    "Checking edge:",
+    sourceItemId,
+    "->",
+    targetNodeId,
+    "Result:",
+    isTargetInCycle,
+  );
+  return isTargetInCycle;
+}

@@ -2,12 +2,7 @@ import { Position, MarkerType } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 import type { Item, Facility } from "@/types";
 import type { ProductionNode, DetectedCycle } from "@/lib/calculator";
-import type {
-  FlowNodeData,
-  FlowProductionNode,
-  FlowTargetNode,
-  CycleNodeData,
-} from "./types";
+import type { FlowNodeData, FlowProductionNode, FlowTargetNode } from "./types";
 import { applyEdgeStyling } from "./edge-styling";
 import {
   createFlowNodeKey,
@@ -15,9 +10,7 @@ import {
   makeNodeIdFromKey,
   findTargetsWithDownstream,
   createCycleInfo,
-  calculateCycleFacilityCount,
-  calculateCyclePowerConsumption,
-  makeCycleNodeId,
+  isEdgePartOfCycle,
 } from "./flow-utils";
 
 /**
@@ -25,12 +18,12 @@ import {
  *
  * In merged mode, identical production steps are combined into single nodes
  * showing aggregated facility counts and production rates. Production cycles
- * are collapsed into single cycle nodes.
+ * are visualized with special edge styling instead of being collapsed.
  *
  * @param rootNodes The root ProductionNodes of the dependency tree
  * @param items All available items in the game
  * @param facilities All available facilities in the game
- * @param detectedCycles Detected production cycles to collapse
+ * @param detectedCycles Detected production cycles for visual highlighting
  * @returns An object containing the generated React Flow nodes and edges
  */
 export function mapPlanToFlowMerged(
@@ -39,7 +32,7 @@ export function mapPlanToFlowMerged(
   facilities: Facility[],
   detectedCycles: DetectedCycle[] = [],
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
-  const nodes: Node<FlowNodeData | CycleNodeData>[] = [];
+  const nodes: Node<FlowNodeData>[] = [];
   const edges: Edge[] = [];
   const nodeKeyToId = new Map<string, string>();
   const targetSinkNodes: Node<import("./types").TargetSinkNodeData>[] = [];
@@ -50,51 +43,42 @@ export function mapPlanToFlowMerged(
   // Identify which targets are upstream of other targets
   const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
 
-  // Create a set of all item IDs that are part of cycles
-  const cycleItemIds = new Set<import("@/types").ItemId>();
-  const itemIdToCycleId = new Map<import("@/types").ItemId, string>();
+  // Create a set of break point item IDs for quick lookup
+  const breakPointItemIds = new Set(
+    detectedCycles.map((cycle) => cycle.breakPointItemId),
+  );
 
+  // Create a map from item ID to cycle for quick lookup
+  const itemIdToCycle = new Map<import("@/types").ItemId, DetectedCycle>();
   detectedCycles.forEach((cycle) => {
     cycle.involvedItemIds.forEach((itemId) => {
-      cycleItemIds.add(itemId);
-      itemIdToCycleId.set(itemId, cycle.cycleId);
-    });
-  });
-
-  // Create cycle nodes
-  const cycleNodeIds = new Map<string, string>(); // cycleId -> nodeId
-
-  detectedCycles.forEach((cycle) => {
-    const cycleNodeId = makeCycleNodeId(cycle.cycleId);
-    cycleNodeIds.set(cycle.cycleId, cycleNodeId);
-
-    const totalFacilityCount = calculateCycleFacilityCount(cycle);
-    const totalPowerConsumption = calculateCyclePowerConsumption(cycle);
-
-    nodes.push({
-      id: cycleNodeId,
-      type: "cycleNode",
-      data: {
-        cycle,
-        items,
-        facilities,
-        totalFacilityCount,
-        totalPowerConsumption,
-      },
-      position: { x: 0, y: 0 },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
+      itemIdToCycle.set(itemId, cycle);
     });
   });
 
   const getOrCreateNodeId = (node: ProductionNode): string => {
-    // If node is part of a cycle, return the cycle node ID
-    if (cycleItemIds.has(node.item.id)) {
-      const cycleId = itemIdToCycleId.get(node.item.id)!;
-      return cycleNodeIds.get(cycleId)!;
+    // If this is a break point node (raw material that's actually in a cycle),
+    // return the ID of the production node instead
+    if (
+      node.isRawMaterial &&
+      breakPointItemIds.has(node.item.id) &&
+      itemIdToCycle.has(node.item.id)
+    ) {
+      // Find the production node key for this item
+      const productionKey = Array.from(aggregatedNodes.keys()).find((key) => {
+        const parts = key.split("__");
+        return parts[0] === node.item.id && parts[2] === "prod";
+      });
+
+      if (productionKey) {
+        if (!nodeKeyToId.has(productionKey)) {
+          nodeKeyToId.set(productionKey, makeNodeIdFromKey(productionKey));
+        }
+        return nodeKeyToId.get(productionKey)!;
+      }
     }
 
-    // Otherwise, create or return regular node ID
+    // Normal case: create or return regular node ID
     const key = createFlowNodeKey(node);
     if (nodeKeyToId.has(key)) {
       return nodeKeyToId.get(key)!;
@@ -115,28 +99,43 @@ export function mapPlanToFlowMerged(
     const nodeId = getOrCreateNodeId(node);
     const key = createFlowNodeKey(node);
 
-    // If this node is part of a cycle, don't create an individual node
-    if (cycleItemIds.has(node.item.id)) {
-      const cycleId = itemIdToCycleId.get(node.item.id)!;
-      const cycleNodeId = cycleNodeIds.get(cycleId)!;
+    // Skip creating a separate node for break point raw materials
+    // as they will be connected to their production node counterpart
+    const isBreakPointRawMaterial =
+      node.isRawMaterial &&
+      breakPointItemIds.has(node.item.id) &&
+      itemIdToCycle.has(node.item.id);
 
-      // Create edge from cycle node to parent if parent exists
-      if (parentId && parentId !== cycleNodeId) {
+    if (isBreakPointRawMaterial) {
+      // Create edge to parent if parent exists
+      if (parentId && parentId !== nodeId) {
         const flowRate = node.targetRate;
 
         const edgeExists = edges.some(
-          (e) => e.source === cycleNodeId && e.target === parentId,
+          (e) => e.source === nodeId && e.target === parentId,
         );
 
         if (!edgeExists) {
           const edgeId = `e${edgeIdCounter.count++}`;
+
+          // This edge connects back to the cycle, so mark it as part of cycle
+          const isPartOfCycle = isEdgePartOfCycle(
+            node.item.id,
+            parentId,
+            nodeKeyToId,
+            detectedCycles,
+          );
+
           edges.push({
             id: edgeId,
-            source: cycleNodeId,
+            source: nodeId,
             target: parentId,
             type: "default",
             label: `${flowRate.toFixed(2)} /min`,
-            data: { flowRate },
+            data: {
+              flowRate,
+              isPartOfCycle,
+            },
             markerEnd: {
               type: MarkerType.ArrowClosed,
             },
@@ -144,16 +143,8 @@ export function mapPlanToFlowMerged(
         }
       }
 
-      // Process dependencies
-      node.dependencies.forEach((dep) => {
-        if (!cycleItemIds.has(dep.item.id)) {
-          // Dependency is outside the cycle, connect it to the cycle node
-          traverse(dep, cycleNodeId, edgeIdCounter);
-        }
-        // If dependency is inside cycle, skip (already handled by cycle node)
-      });
-
-      return cycleNodeId;
+      // Don't traverse dependencies for break point raw materials
+      return nodeId;
     }
 
     // Skip creating production node if it's a target without downstream
@@ -185,7 +176,7 @@ export function mapPlanToFlowMerged(
         facilityCount: aggregatedData.totalFacilityCount,
       };
 
-      // Generate cycle info for this node (will be undefined for non-cycle nodes)
+      // Generate cycle info for this node
       const cycleInfo = createCycleInfo(
         aggregatedData.node,
         detectedCycles,
@@ -220,13 +211,25 @@ export function mapPlanToFlowMerged(
 
       if (!edgeExists) {
         const edgeId = `e${edgeIdCounter.count++}`;
+
+        // Check if this edge is part of a cycle
+        const isPartOfCycle = isEdgePartOfCycle(
+          node.item.id,
+          parentId,
+          nodeKeyToId,
+          detectedCycles,
+        );
+
         edges.push({
           id: edgeId,
           source: nodeId,
           target: parentId,
           type: "default",
           label: `${flowRate.toFixed(2)} /min`,
-          data: { flowRate },
+          data: {
+            flowRate,
+            isPartOfCycle,
+          },
           markerEnd: {
             type: MarkerType.ArrowClosed,
           },
@@ -278,10 +281,8 @@ export function mapPlanToFlowMerged(
     });
 
     if (hasDownstream) {
-      // Target with downstream: check if it's a cycle or regular node
-      const nodeId = cycleItemIds.has(data.node.item.id)
-        ? cycleNodeIds.get(itemIdToCycleId.get(data.node.item.id)!)!
-        : makeNodeIdFromKey(key);
+      // Target with downstream: connect from production node
+      const nodeId = makeNodeIdFromKey(key);
 
       edges.push({
         id: `e${edgeIdCounter.count++}`,
