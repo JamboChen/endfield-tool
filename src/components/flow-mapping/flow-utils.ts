@@ -1,4 +1,7 @@
-import type { ProductionNode } from "@/lib/calculator";
+import type { ItemId } from "@/types";
+import type { DetectedCycle, ProductionNode } from "@/lib/calculator";
+import type { CycleInfo } from "./types";
+import { getItemName } from "@/lib/i18n-helpers";
 
 /**
  * Creates a stable key for a ProductionNode.
@@ -144,4 +147,74 @@ export function shouldSkipNode(
   targetsWithDownstream: Set<string>,
 ): boolean {
   return node.isTarget && !targetsWithDownstream.has(nodeKey);
+}
+
+/**
+ * Finds the cycle that contains a given item, if any.
+ *
+ * @param itemId The item ID to search for
+ * @param detectedCycles Array of all detected cycles
+ * @returns The cycle containing this item, or undefined if not in any cycle
+ */
+export function findCycleForItem(
+  itemId: ItemId,
+  detectedCycles: DetectedCycle[],
+): DetectedCycle | undefined {
+  return detectedCycles.find((cycle) => cycle.involvedItemIds.includes(itemId));
+}
+
+/**
+ * Generates a human-readable display name for a cycle.
+ *
+ * @param cycle The detected cycle
+ * @param itemMap Map of item IDs to Item objects for name lookup
+ * @returns A display name like "Seed-Plant Cycle"
+ */
+export function generateCycleDisplayName(
+  cycle: DetectedCycle,
+  itemMap: Map<ItemId, import("@/types").Item>,
+): string {
+  // Take first 2-3 items for the name to keep it concise
+  const maxItems = 3;
+  const displayItems = cycle.involvedItemIds
+    .slice(0, maxItems)
+    .map((itemId) => {
+      const item = itemMap.get(itemId);
+      return item ? getItemName(item) : itemId;
+    });
+
+  const itemNames = displayItems.join("-");
+  const hasMore = cycle.involvedItemIds.length > maxItems;
+
+  return hasMore ? `${itemNames}... Cycle` : `${itemNames} Cycle`;
+}
+
+/**
+ * Creates cycle information for a production node.
+ *
+ * @param node The production node to check
+ * @param detectedCycles Array of all detected cycles
+ * @param itemMap Map for generating display names
+ * @returns CycleInfo if the node is in a cycle, undefined otherwise
+ */
+export function createCycleInfo(
+  node: ProductionNode,
+  detectedCycles: DetectedCycle[],
+  itemMap: Map<ItemId, import("@/types").Item>,
+): CycleInfo | undefined {
+  const cycle = findCycleForItem(node.item.id, detectedCycles);
+
+  if (!cycle) {
+    return undefined;
+  }
+
+  const isBreakPoint = cycle.breakPointItemId === node.item.id;
+  const cycleDisplayName = generateCycleDisplayName(cycle, itemMap);
+
+  return {
+    isPartOfCycle: true,
+    isBreakPoint,
+    cycleId: cycle.cycleId,
+    cycleDisplayName,
+  };
 }

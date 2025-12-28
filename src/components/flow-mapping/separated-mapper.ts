@@ -1,7 +1,7 @@
 import { Position, MarkerType } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 import type { Item, Facility, Recipe } from "@/types";
-import type { ProductionNode } from "@/lib/calculator";
+import type { DetectedCycle, ProductionNode } from "@/lib/calculator";
 import type {
   FlowProductionNode,
   FlowNodeDataSeparated,
@@ -17,6 +17,7 @@ import {
   type AggregatedProductionNodeData,
   findTargetsWithDownstream,
   shouldSkipNode,
+  createCycleInfo,
 } from "./flow-utils";
 
 /**
@@ -102,6 +103,7 @@ export function mapPlanToFlowSeparated(
   rootNodes: ProductionNode[],
   items: Item[],
   facilities: Facility[],
+  detectedCycles: DetectedCycle[] = [],
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
   // Step 1: Collect unique nodes and determine processing order
   const nodeMap = aggregateProductionNodes(rootNodes);
@@ -134,6 +136,8 @@ export function mapPlanToFlowSeparated(
     FlowNodeDataSeparated | FlowNodeDataSeparatedWithTarget
   >[] = [];
   const targetSinkNodes: FlowTargetNode[] = [];
+  // Create item map for cycle display name generation
+  const itemMap = new Map(items.map((item) => [item.id, item]));
 
   nodeMap.forEach((aggregatedData, key) => {
     const node = aggregatedData.node;
@@ -156,6 +160,7 @@ export function mapPlanToFlowSeparated(
         facilityCount: aggregatedData.totalFacilityCount,
       };
 
+      const cycleInfo = createCycleInfo(node, detectedCycles, itemMap);
       flowNodes.push({
         id: makeNodeIdFromKey(key),
         type: "productionNode",
@@ -166,6 +171,7 @@ export function mapPlanToFlowSeparated(
           facilities,
           isDirectTarget,
           directTargetRate,
+          cycleInfo,
         },
         position: { x: 0, y: 0 },
         sourcePosition: Position.Right,
@@ -187,6 +193,7 @@ export function mapPlanToFlowSeparated(
           facilityCount: 1, // Each node represents exactly 1 facility
         };
 
+        const cycleInfo = createCycleInfo(node, detectedCycles, itemMap);
         flowNodes.push({
           id: facility.facilityId,
           type: "productionNode",
@@ -201,6 +208,7 @@ export function mapPlanToFlowSeparated(
             isPartialLoad,
             isDirectTarget,
             directTargetRate,
+            cycleInfo,
           },
           position: { x: 0, y: 0 },
           sourcePosition: Position.Right,
@@ -394,6 +402,82 @@ export function mapPlanToFlowSeparated(
         }
       });
     }
+  });
+
+  // Add cycle closure edges to visualize loops
+  detectedCycles.forEach((cycle) => {
+    const breakPointItemId = cycle.breakPointItemId;
+    const cycleLength = cycle.involvedItemIds.length;
+    if (cycleLength < 2) return;
+
+    // Get the producer of the break point item
+    const breakPointIndex = cycle.involvedItemIds.indexOf(breakPointItemId);
+    const producerIndex = (breakPointIndex - 1 + cycleLength) % cycleLength;
+    const producerItemId = cycle.involvedItemIds[producerIndex];
+
+    const producerNode = cycle.cycleNodes.find(
+      (node) => node.item.id === producerItemId,
+    );
+
+    if (!producerNode) return;
+
+    // In separated mode, we need to connect from the last facility instance
+    // of the producer to the break point node
+
+    const breakPointKey = createFlowNodeKey({
+      item: { id: breakPointItemId } as Item,
+      isRawMaterial: true,
+      recipe: null,
+    } as ProductionNode);
+
+    const producerKey = createFlowNodeKey({
+      item: { id: producerItemId } as Item,
+      isRawMaterial: false,
+      recipe: producerNode.recipe,
+    } as ProductionNode);
+
+    const breakPointNodeId = makeNodeIdFromKey(breakPointKey);
+
+    // Find all producer facility instances
+    const producerFacilities = poolManager.getFacilityInstances(producerKey);
+
+    if (producerFacilities.length === 0) return;
+
+    // Check if break point node exists
+    const breakPointExists = flowNodes.some((n) => n.id === breakPointNodeId);
+    if (!breakPointExists) return;
+
+    // Connect from the last facility instance (or split among all)
+    // For simplicity, connect from the last one
+    const lastFacility = producerFacilities[producerFacilities.length - 1];
+
+    const breakPointNode = cycle.cycleNodes.find(
+      (node) => node.item.id === breakPointItemId,
+    );
+    const flowRate = breakPointNode?.targetRate || 1;
+
+    edges.push({
+      id: `cycle-closure-${cycle.cycleId}`,
+      source: lastFacility.facilityId,
+      target: breakPointNodeId,
+      type: "default",
+      animated: true,
+      style: {
+        stroke: "#a855f7", // purple-500
+        strokeWidth: 2.5,
+        strokeDasharray: "5,5",
+      },
+      label: `🔄 ${flowRate.toFixed(2)} /min`,
+      labelStyle: {
+        fill: "#a855f7",
+        fontWeight: 600,
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: "#a855f7",
+      },
+      data: { flowRate, isCycleClosure: true },
+    });
   });
 
   const styledEdges = applyEdgeStyling(edges);
