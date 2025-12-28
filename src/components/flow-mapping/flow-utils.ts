@@ -218,3 +218,39 @@ export function createCycleInfo(
     cycleDisplayName,
   };
 }
+
+/**
+ * Checks if a node is part of any cycle and should be hidden in collapsed view.
+ */
+export function isNodeInAnyCycle(
+  itemId: ItemId,
+  detectedCycles: DetectedCycle[],
+): boolean {
+  return detectedCycles.some((cycle) => cycle.involvedItemIds.includes(itemId));
+}
+
+/**
+ * Calculates total facility count for a cycle.
+ */
+export function calculateCycleFacilityCount(cycle: DetectedCycle): number {
+  return cycle.cycleNodes.reduce((sum, node) => sum + node.facilityCount, 0);
+}
+
+/**
+ * Calculates total power consumption for a cycle.
+ */
+export function calculateCyclePowerConsumption(cycle: DetectedCycle): number {
+  return cycle.cycleNodes.reduce((sum, node) => {
+    if (node.facility) {
+      return sum + node.facility.powerConsumption * node.facilityCount;
+    }
+    return sum;
+  }, 0);
+}
+
+/**
+ * Creates a unique node ID for a cycle node.
+ */
+export function makeCycleNodeId(cycleId: string): string {
+  return `cycle-${cycleId}`;
+}
