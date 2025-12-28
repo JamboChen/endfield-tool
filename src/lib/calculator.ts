@@ -21,6 +21,7 @@ export type ProductionNode = {
   isTarget: boolean;
   dependencies: ProductionNode[];
   manualRawMaterials?: Set<ItemId>;
+  level?: number;
 };
 
 /**
@@ -56,6 +57,7 @@ export type UnifiedProductionPlan = {
   manualRawMaterials?: Set<ItemId>;
   /** Detected production cycles (for tree view visualization) */
   detectedCycles: DetectedCycle[];
+  keyToLevel?: Map<string, number>;
 };
 
 export type RecipeSelector = (
@@ -343,13 +345,17 @@ function buildFinalPlanComponents(
   totalPowerConsumption: number;
   rawMaterialRequirements: Map<ItemId, number>;
   detectedCycles: DetectedCycle[];
+  keyToLevel: Map<string, number>;
 } {
   const rawMaterialRequirements = new Map<ItemId, number>();
   let totalPowerConsumption = 0;
   const flatList: ProductionNode[] = [];
 
+  const keyToLevel = calculateNodeLevels(sortedKeys, mergedNodes);
+
   sortedKeys.forEach((key) => {
     const node = mergedNodes.get(key)!;
+    const level = keyToLevel.get(key) || 0;
 
     if (node.isRawMaterial) {
       rawMaterialRequirements.set(
@@ -370,6 +376,7 @@ function buildFinalPlanComponents(
       isRawMaterial: node.isRawMaterial,
       isTarget: node.isTarget,
       dependencies: [],
+      level,
     });
   });
 
@@ -378,6 +385,7 @@ function buildFinalPlanComponents(
     totalPowerConsumption,
     rawMaterialRequirements,
     detectedCycles: [],
+    keyToLevel,
   };
 }
 
@@ -711,10 +719,12 @@ function buildDependencyTree(
 /**
  * Processes the raw dependency trees to create a merged, sorted, and flattened production plan.
  */
-function processMergedPlan(
-  rootNodes: ProductionNode[],
-): Omit<UnifiedProductionPlan, "dependencyRootNodes"> {
-  // 1. Identify all items that are produced by any recipe within the entire production graph.
+function processMergedPlan(rootNodes: ProductionNode[]): Omit<
+  UnifiedProductionPlan,
+  "dependencyRootNodes"
+> & {
+  keyToLevel: Map<string, number>;
+} {
   const producedItemIds = collectProducedItems(rootNodes);
 
   // 2. Merge duplicate production steps and aggregate requirements.
@@ -743,14 +753,12 @@ export function calculateProductionPlan(
 ): UnifiedProductionPlan {
   if (targets.length === 0) throw new Error("No targets specified");
 
-  // Create lookup maps for efficient access to items, recipes, and facilities.
   const maps: ProductionMaps = {
     itemMap: new Map(items.map((i) => [i.id, i])),
     recipeMap: new Map(recipes.map((r) => [r.id, r])),
     facilityMap: new Map(facilities.map((f) => [f.id, f])),
   };
 
-  // 1. Build the raw, unmerged dependency tree(s) and collect cycle information.
   const { rootNodes: dependencyRootNodes, detectedCycles } =
     buildDependencyTree(
       targets,
@@ -760,16 +768,19 @@ export function calculateProductionPlan(
       manualRawMaterials,
     );
 
-  // 2. Process the merged and flattened plan for statistics and tables.
-  const { flatList, totalPowerConsumption, rawMaterialRequirements } =
-    processMergedPlan(dependencyRootNodes);
+  const {
+    flatList,
+    totalPowerConsumption,
+    rawMaterialRequirements,
+    keyToLevel,
+  } = processMergedPlan(dependencyRootNodes);
 
-  // 3. Return the unified plan with cycle information.
   return {
     dependencyRootNodes,
     flatList,
     totalPowerConsumption,
     rawMaterialRequirements,
     detectedCycles,
+    keyToLevel,
   };
 }

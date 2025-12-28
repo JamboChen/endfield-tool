@@ -2,6 +2,7 @@ import type { ItemId } from "@/types";
 import type { DetectedCycle, ProductionNode } from "@/lib/calculator";
 import type { CycleInfo } from "./types";
 import { getItemName } from "@/lib/i18n-helpers";
+import { Position } from "@xyflow/react";
 
 /**
  * Creates a stable key for a ProductionNode.
@@ -306,4 +307,51 @@ export function isEdgePartOfCycle(
     isTargetInCycle,
   );
   return isTargetInCycle;
+}
+
+/**
+ * Determines the appropriate handle positions for an edge based on cycle status and node levels.
+ *
+ * @param sourceLevel The level of the source node
+ * @param targetLevel The level of the target node
+ * @param isPartOfCycle Whether this edge is part of a production cycle
+ * @returns An object with sourcePosition and targetPosition
+ */
+export function determineHandlePositions(
+  sourceLevel: number,
+  targetLevel: number,
+  isPartOfCycle: boolean,
+): {
+  sourcePosition: Position;
+  targetPosition: Position;
+  sourceHandle?: string;
+  targetHandle?: string;
+} {
+  // For cycle edges between same or adjacent levels, use vertical connections
+  const levelDiff = Math.abs(sourceLevel - targetLevel);
+
+  if (isPartOfCycle && levelDiff <= 1) {
+    // Use top/bottom handles for cycle edges
+    return {
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+      sourceHandle: "bottom",
+      targetHandle: "top",
+    };
+  }
+
+  // Default: horizontal connections for normal edges
+  return {
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
+    sourceHandle: "right",
+    targetHandle: "left",
+  };
+}
+
+/**
+ * Extracts the item ID from a node key.
+ */
+export function getItemIdFromKey(key: string): ItemId {
+  return key.split("__")[0] as ItemId;
 }

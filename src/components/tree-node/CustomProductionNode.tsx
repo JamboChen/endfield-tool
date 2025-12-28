@@ -66,8 +66,6 @@ function hasTargetInfo(
  */
 export default function CustomProductionNode({
   data,
-  sourcePosition = Position.Right,
-  targetPosition = Position.Left,
 }: NodeProps<FlowProductionNode>) {
   const { productionNode: node, isCircular, items, cycleInfo } = data;
   const { t } = useTranslation("production");
@@ -193,11 +191,36 @@ export default function CustomProductionNode({
         <Card
           className={`w-52 shadow-lg ${borderColor} border-2 hover:shadow-xl transition-shadow cursor-help relative`}
         >
-          {/* Target handle for incoming connections */}
+          {/* Multiple target handles for different directions */}
           <Handle
             type="target"
-            position={targetPosition as Position}
+            position={Position.Left}
+            id="left"
             isConnectable={false}
+            className="!w-3 !h-3"
+          />
+          <Handle
+            type="target"
+            position={Position.Top}
+            id="top"
+            isConnectable={false}
+            className="!w-3 !h-3"
+          />
+          <Handle
+            type="target"
+            position={Position.Right}
+            id="right"
+            isConnectable={false}
+            className="!w-3 !h-3 !opacity-30"
+            style={{ pointerEvents: "none" }}
+          />
+          <Handle
+            type="target"
+            position={Position.Bottom}
+            id="bottom"
+            isConnectable={false}
+            className="!w-3 !h-3 !opacity-30"
+            style={{ pointerEvents: "none" }}
           />
           <CardContent className="p-3 text-xs">
             {/* Item icon and name */}
@@ -300,11 +323,36 @@ export default function CustomProductionNode({
               </div>
             )}
           </CardContent>
-          {/* Source handle for outgoing connections */}
+          {/* Multiple source handles for different directions */}
           <Handle
             type="source"
-            position={sourcePosition as Position}
+            position={Position.Right}
+            id="right"
             isConnectable={false}
+            className="!w-3 !h-3"
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="bottom"
+            isConnectable={false}
+            className="!w-3 !h-3"
+          />
+          <Handle
+            type="source"
+            position={Position.Left}
+            id="left"
+            isConnectable={false}
+            className="!w-3 !h-3 !opacity-30"
+            style={{ pointerEvents: "none" }}
+          />
+          <Handle
+            type="source"
+            position={Position.Top}
+            id="top"
+            isConnectable={false}
+            className="!w-3 !h-3 !opacity-30"
+            style={{ pointerEvents: "none" }}
           />
         </Card>
       </TooltipTrigger>

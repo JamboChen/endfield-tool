@@ -19,6 +19,7 @@ export interface FlowNodeData {
   items: Item[];
   facilities: Facility[];
   cycleInfo?: CycleInfo;
+  level?: number;
   [key: string]: unknown;
 }
 

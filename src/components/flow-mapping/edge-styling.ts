@@ -1,4 +1,4 @@
-import type { Edge } from "@xyflow/react";
+import { MarkerType, type Edge, type EdgeData } from "@xyflow/react";
 
 /**
  * Applies dynamic styling to edges based on their flow rates.
@@ -19,9 +19,14 @@ export function applyEdgeStyling(edges: Edge[]): Edge[] {
   if (edges.length === 0) return edges;
 
   // Find max flow rate for normalization (excluding target sink edges)
-  const flowRates = edges
-    .filter((e) => e.data?.flowRate !== undefined && !e.animated)
-    .map((e) => e.data.flowRate);
+  const flowRates: number[] = [];
+
+  edges.forEach((e) => {
+    const data = e.data as EdgeData | undefined;
+    if (data?.flowRate !== undefined && !e.animated) {
+      flowRates.push(data.flowRate);
+    }
+  });
 
   const maxFlowRate = Math.max(...flowRates, 1);
 
@@ -31,8 +36,15 @@ export function applyEdgeStyling(edges: Edge[]): Edge[] {
       return edge;
     }
 
-    const flowRate = edge.data?.flowRate || 0;
-    const isPartOfCycle = edge.data?.isPartOfCycle || false;
+    const data = edge.data as EdgeData | undefined;
+
+    // Return unchanged if no valid data
+    if (!data || typeof data.flowRate !== "number") {
+      return edge;
+    }
+
+    const flowRate = data.flowRate;
+    const isPartOfCycle = data.isPartOfCycle || false;
 
     // Calculate stroke width based on flow rate (1-4 range)
     const normalizedRate = flowRate / maxFlowRate;
@@ -48,7 +60,7 @@ export function applyEdgeStyling(edges: Edge[]): Edge[] {
           stroke: "#a855f7", // Purple color for cycle edges
         },
         markerEnd: {
-          ...edge.markerEnd,
+          type: MarkerType.ArrowClosed,
           color: "#a855f7",
         },
       };
@@ -60,6 +72,10 @@ export function applyEdgeStyling(edges: Edge[]): Edge[] {
       style: {
         strokeWidth,
         stroke: "#64748b", // Default gray
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: "#64748b",
       },
     };
   });

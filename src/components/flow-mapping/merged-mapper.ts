@@ -11,6 +11,7 @@ import {
   findTargetsWithDownstream,
   createCycleInfo,
   isEdgePartOfCycle,
+  determineHandlePositions,
 } from "./flow-utils";
 
 /**
@@ -31,6 +32,7 @@ export function mapPlanToFlowMerged(
   items: Item[],
   facilities: Facility[],
   detectedCycles: DetectedCycle[] = [],
+  keyToLevel?: Map<string, number>,
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
   const nodes: Node<FlowNodeData>[] = [];
   const edges: Edge[] = [];
@@ -40,15 +42,12 @@ export function mapPlanToFlowMerged(
   const aggregatedNodes = aggregateProductionNodes(rootNodes);
   const itemMap = new Map(items.map((item) => [item.id, item]));
 
-  // Identify which targets are upstream of other targets
   const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
 
-  // Create a set of break point item IDs for quick lookup
   const breakPointItemIds = new Set(
     detectedCycles.map((cycle) => cycle.breakPointItemId),
   );
 
-  // Create a map from item ID to cycle for quick lookup
   const itemIdToCycle = new Map<import("@/types").ItemId, DetectedCycle>();
   detectedCycles.forEach((cycle) => {
     cycle.involvedItemIds.forEach((itemId) => {
@@ -57,14 +56,11 @@ export function mapPlanToFlowMerged(
   });
 
   const getOrCreateNodeId = (node: ProductionNode): string => {
-    // If this is a break point node (raw material that's actually in a cycle),
-    // return the ID of the production node instead
     if (
       node.isRawMaterial &&
       breakPointItemIds.has(node.item.id) &&
       itemIdToCycle.has(node.item.id)
     ) {
-      // Find the production node key for this item
       const productionKey = Array.from(aggregatedNodes.keys()).find((key) => {
         const parts = key.split("__");
         return parts[0] === node.item.id && parts[2] === "prod";
@@ -78,7 +74,6 @@ export function mapPlanToFlowMerged(
       }
     }
 
-    // Normal case: create or return regular node ID
     const key = createFlowNodeKey(node);
     if (nodeKeyToId.has(key)) {
       return nodeKeyToId.get(key)!;
@@ -88,26 +83,30 @@ export function mapPlanToFlowMerged(
     return nodeId;
   };
 
-  /**
-   * Recursively traverses the production dependency tree to create nodes and edges.
-   */
+  // Helper function to get level for a node
+  const getNodeLevel = (node: ProductionNode, key: string): number => {
+    if (node.level !== undefined) return node.level;
+    if (keyToLevel) {
+      return keyToLevel.get(key) || 0;
+    }
+    return 0;
+  };
+
   const traverse = (
     node: ProductionNode,
     parentId: string | null = null,
     edgeIdCounter: { count: number },
+    parentKey?: string,
   ): string => {
     const nodeId = getOrCreateNodeId(node);
     const key = createFlowNodeKey(node);
 
-    // Skip creating a separate node for break point raw materials
-    // as they will be connected to their production node counterpart
     const isBreakPointRawMaterial =
       node.isRawMaterial &&
       breakPointItemIds.has(node.item.id) &&
       itemIdToCycle.has(node.item.id);
 
     if (isBreakPointRawMaterial) {
-      // Create edge to parent if parent exists
       if (parentId && parentId !== nodeId) {
         const flowRate = node.targetRate;
 
@@ -118,12 +117,23 @@ export function mapPlanToFlowMerged(
         if (!edgeExists) {
           const edgeId = `e${edgeIdCounter.count++}`;
 
-          // This edge connects back to the cycle, so mark it as part of cycle
           const isPartOfCycle = isEdgePartOfCycle(
             node.item.id,
             parentId,
             nodeKeyToId,
             detectedCycles,
+          );
+
+          // Get levels for handle position determination
+          const sourceLevel = getNodeLevel(node, key);
+          const targetLevel = parentKey
+            ? getNodeLevel(node, parentKey)
+            : sourceLevel;
+
+          const handlePositions = determineHandlePositions(
+            sourceLevel,
+            targetLevel,
+            isPartOfCycle,
           );
 
           edges.push({
@@ -136,6 +146,8 @@ export function mapPlanToFlowMerged(
               flowRate,
               isPartOfCycle,
             },
+            sourceHandle: handlePositions.sourceHandle,
+            targetHandle: handlePositions.targetHandle,
             markerEnd: {
               type: MarkerType.ArrowClosed,
             },
@@ -143,16 +155,13 @@ export function mapPlanToFlowMerged(
         }
       }
 
-      // Don't traverse dependencies for break point raw materials
       return nodeId;
     }
 
-    // Skip creating production node if it's a target without downstream
     const isTargetWithoutDownstream =
       node.isTarget && !targetsWithDownstream.has(key);
 
     if (isTargetWithoutDownstream) {
-      // Don't create a production node for pure targets
       node.dependencies.forEach((dep) => {
         traverse(dep, null, edgeIdCounter);
       });
@@ -160,7 +169,6 @@ export function mapPlanToFlowMerged(
       return nodeId;
     }
 
-    // Add node if it doesn't exist yet (regular production node)
     if (!nodes.find((n) => n.id === nodeId)) {
       const aggregatedData = aggregatedNodes.get(key)!;
       const isCircular = node.isRawMaterial && node.recipe !== null;
@@ -176,12 +184,13 @@ export function mapPlanToFlowMerged(
         facilityCount: aggregatedData.totalFacilityCount,
       };
 
-      // Generate cycle info for this node
       const cycleInfo = createCycleInfo(
         aggregatedData.node,
         detectedCycles,
         itemMap,
       );
+
+      const level = getNodeLevel(aggregatedData.node, key);
 
       nodes.push({
         id: nodeId,
@@ -194,6 +203,7 @@ export function mapPlanToFlowMerged(
           isDirectTarget,
           directTargetRate,
           cycleInfo,
+          level,
         },
         position: { x: 0, y: 0 },
         sourcePosition: Position.Right,
@@ -201,7 +211,6 @@ export function mapPlanToFlowMerged(
       });
     }
 
-    // Create an edge from this node to its parent (if parent exists)
     if (parentId && parentId !== nodeId) {
       const flowRate = node.targetRate;
 
@@ -212,12 +221,23 @@ export function mapPlanToFlowMerged(
       if (!edgeExists) {
         const edgeId = `e${edgeIdCounter.count++}`;
 
-        // Check if this edge is part of a cycle
         const isPartOfCycle = isEdgePartOfCycle(
           node.item.id,
           parentId,
           nodeKeyToId,
           detectedCycles,
+        );
+
+        // Get levels for handle position determination
+        const sourceLevel = getNodeLevel(node, key);
+        const targetLevel = parentKey
+          ? getNodeLevel(node, parentKey)
+          : sourceLevel;
+
+        const handlePositions = determineHandlePositions(
+          sourceLevel,
+          targetLevel,
+          isPartOfCycle,
         );
 
         edges.push({
@@ -230,6 +250,8 @@ export function mapPlanToFlowMerged(
             flowRate,
             isPartOfCycle,
           },
+          sourceHandle: handlePositions.sourceHandle,
+          targetHandle: handlePositions.targetHandle,
           markerEnd: {
             type: MarkerType.ArrowClosed,
           },
@@ -237,15 +259,13 @@ export function mapPlanToFlowMerged(
       }
     }
 
-    // Recursively traverse dependencies
     node.dependencies.forEach((dep) => {
-      traverse(dep, nodeId, edgeIdCounter);
+      traverse(dep, nodeId, edgeIdCounter, key);
     });
 
     return nodeId;
   };
 
-  // Build the graph starting from all root nodes
   const edgeIdCounter = { count: 0 };
   rootNodes.forEach((root) => traverse(root, null, edgeIdCounter));
 
