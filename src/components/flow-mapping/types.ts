@@ -156,21 +156,6 @@ export interface CycleNodeData {
 }
 
 /**
- * Type alias for a cycle node in the React Flow graph.
- */
-export type FlowCycleNode = Node<CycleNodeData>;
-
-/**
- * Union type for all possible production flow node data types.
- */
-export type AllFlowNodeData =
-  | FlowNodeData
-  | FlowNodeDataSeparated
-  | FlowNodeDataWithTarget
-  | FlowNodeDataSeparatedWithTarget
-  | FlowCycleNode;
-
-/**
  * Updated FlowProductionNode that can include target information.
  */
 export type FlowProductionNode =

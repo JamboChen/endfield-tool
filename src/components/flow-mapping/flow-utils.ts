@@ -157,7 +157,7 @@ export function shouldSkipNode(
  * @param detectedCycles Array of all detected cycles
  * @returns The cycle containing this item, or undefined if not in any cycle
  */
-export function findCycleForItem(
+function findCycleForItem(
   itemId: ItemId,
   detectedCycles: DetectedCycle[],
 ): DetectedCycle | undefined {
@@ -171,7 +171,7 @@ export function findCycleForItem(
  * @param itemMap Map of item IDs to Item objects for name lookup
  * @returns A display name like "Seed-Plant Cycle"
  */
-export function generateCycleDisplayName(
+function generateCycleDisplayName(
   cycle: DetectedCycle,
   itemMap: Map<ItemId, import("@/types").Item>,
 ): string {
@@ -218,42 +218,6 @@ export function createCycleInfo(
     cycleId: cycle.cycleId,
     cycleDisplayName,
   };
-}
-
-/**
- * Checks if a node is part of any cycle and should be hidden in collapsed view.
- */
-export function isNodeInAnyCycle(
-  itemId: ItemId,
-  detectedCycles: DetectedCycle[],
-): boolean {
-  return detectedCycles.some((cycle) => cycle.involvedItemIds.includes(itemId));
-}
-
-/**
- * Calculates total facility count for a cycle.
- */
-export function calculateCycleFacilityCount(cycle: DetectedCycle): number {
-  return cycle.cycleNodes.reduce((sum, node) => sum + node.facilityCount, 0);
-}
-
-/**
- * Calculates total power consumption for a cycle.
- */
-export function calculateCyclePowerConsumption(cycle: DetectedCycle): number {
-  return cycle.cycleNodes.reduce((sum, node) => {
-    if (node.facility) {
-      return sum + node.facility.powerConsumption * node.facilityCount;
-    }
-    return sum;
-  }, 0);
-}
-
-/**
- * Creates a unique node ID for a cycle node.
- */
-export function makeCycleNodeId(cycleId: string): string {
-  return `cycle-${cycleId}`;
 }
 
 /**
@@ -347,11 +311,4 @@ export function determineHandlePositions(
     sourceHandle: "right",
     targetHandle: "left",
   };
-}
-
-/**
- * Extracts the item ID from a node key.
- */
-export function getItemIdFromKey(key: string): ItemId {
-  return key.split("__")[0] as ItemId;
 }

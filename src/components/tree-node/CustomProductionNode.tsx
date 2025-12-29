@@ -197,21 +197,21 @@ export default function CustomProductionNode({
             position={Position.Left}
             id="left"
             isConnectable={false}
-            className="!w-3 !h-3"
+            className="w-3! h-3!"
           />
           <Handle
             type="target"
             position={Position.Top}
             id="top"
             isConnectable={false}
-            className="!w-3 !h-3"
+            className="w-3! h-3!"
           />
           <Handle
             type="target"
             position={Position.Right}
             id="right"
             isConnectable={false}
-            className="!w-3 !h-3 !opacity-30"
+            className="w-3! h-3! opacity-30!"
             style={{ pointerEvents: "none" }}
           />
           <Handle
@@ -219,7 +219,7 @@ export default function CustomProductionNode({
             position={Position.Bottom}
             id="bottom"
             isConnectable={false}
-            className="!w-3 !h-3 !opacity-30"
+            className="w-3! h-3! opacity-30!"
             style={{ pointerEvents: "none" }}
           />
           <CardContent className="p-3 text-xs">
@@ -329,21 +329,21 @@ export default function CustomProductionNode({
             position={Position.Right}
             id="right"
             isConnectable={false}
-            className="!w-3 !h-3"
+            className="w-3! h-3!"
           />
           <Handle
             type="source"
             position={Position.Bottom}
             id="bottom"
             isConnectable={false}
-            className="!w-3 !h-3"
+            className="w-3! h-3!"
           />
           <Handle
             type="source"
             position={Position.Left}
             id="left"
             isConnectable={false}
-            className="!w-3 !h-3 !opacity-30"
+            className="w-3! h-3! opacity-30!"
             style={{ pointerEvents: "none" }}
           />
           <Handle
@@ -351,7 +351,7 @@ export default function CustomProductionNode({
             position={Position.Top}
             id="top"
             isConnectable={false}
-            className="!w-3 !h-3 !opacity-30"
+            className="w-3! h-3! opacity-30!"
             style={{ pointerEvents: "none" }}
           />
         </Card>
