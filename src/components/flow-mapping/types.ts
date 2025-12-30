@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 import type { Item, Facility, Recipe } from "@/types";
-import type { DetectedCycle, ProductionNode } from "@/lib/calculator";
+import type { ProductionNode } from "@/lib/calculator";
 
 /**
  * Visualization mode for the production dependency tree.
@@ -137,23 +137,6 @@ export interface TargetSinkNodeData {
  * Type alias for a target sink node in the React Flow graph.
  */
 export type FlowTargetNode = Node<TargetSinkNodeData>;
-
-/**
- * Data for a cycle aggregation node that represents an entire production cycle.
- */
-export interface CycleNodeData {
-  /** The detected cycle this node represents */
-  cycle: DetectedCycle;
-  /** All available items (for icon rendering) */
-  items: Item[];
-  /** All available facilities (for summary) */
-  facilities: Facility[];
-  /** Total facility count across the cycle */
-  totalFacilityCount: number;
-  /** Total power consumption for the cycle */
-  totalPowerConsumption: number;
-  [key: string]: unknown;
-}
 
 /**
  * Updated FlowProductionNode that can include target information.
