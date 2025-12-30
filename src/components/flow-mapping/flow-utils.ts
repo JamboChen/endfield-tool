@@ -312,3 +312,45 @@ export function determineHandlePositions(
     targetHandle: "left",
   };
 }
+
+/**
+ * Checks if a node is a circular breakpoint (a raw material node that's actually produced in a cycle).
+ *
+ * @param node The production node to check
+ * @param detectedCycles All detected cycles
+ * @returns True if this node is a breakpoint in any cycle
+ */
+export function isCircularBreakpoint(
+  node: ProductionNode,
+  detectedCycles: DetectedCycle[],
+): boolean {
+  if (!node.isRawMaterial) {
+    return false;
+  }
+
+  return detectedCycles.some(
+    (cycle) => cycle.breakPointItemId === node.item.id,
+  );
+}
+
+/**
+ * Finds the production node key for a given item ID within the aggregated nodes.
+ * This is used to redirect circular breakpoint dependencies to their actual production nodes.
+ *
+ * @param itemId The item ID to search for
+ * @param nodeMap Map of aggregated production nodes
+ * @returns The production node key, or null if not found
+ */
+export function findProductionKeyForItem(
+  itemId: ItemId,
+  nodeMap: Map<string, AggregatedProductionNodeData>,
+): string | null {
+  for (const [key, data] of nodeMap.entries()) {
+    const node = data.node;
+    // Look for production nodes (not raw materials) that produce this item
+    if (!node.isRawMaterial && node.item.id === itemId && node.recipe) {
+      return key;
+    }
+  }
+  return null;
+}
