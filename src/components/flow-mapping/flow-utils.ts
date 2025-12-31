@@ -48,6 +48,13 @@ export function aggregateProductionNodes(
   const nodeMap = new Map<string, AggregatedProductionNodeData>();
 
   const collect = (node: ProductionNode) => {
+    // Skip cycle placeholders - they don't represent actual production
+    if (node.isCyclePlaceholder) {
+      // Still traverse their dependencies (though they should have none)
+      node.dependencies.forEach(collect);
+      return;
+    }
+
     const key = createFlowNodeKey(node);
     const existing = nodeMap.get(key);
 
@@ -262,14 +269,6 @@ export function isEdgePartOfCycle(
   // Check if both source and target are in the same cycle
   const isTargetInCycle = sourceCycle.involvedItemIds.includes(targetItemId);
 
-  console.log(
-    "Checking edge:",
-    sourceItemId,
-    "->",
-    targetNodeId,
-    "Result:",
-    isTargetInCycle,
-  );
   return isTargetInCycle;
 }
 

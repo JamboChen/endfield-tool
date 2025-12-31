@@ -44,10 +44,6 @@ export function mapPlanToFlowMerged(
 
   const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
 
-  const breakPointItemIds = new Set(
-    detectedCycles.map((cycle) => cycle.breakPointItemId),
-  );
-
   const itemIdToCycle = new Map<import("@/types").ItemId, DetectedCycle>();
   detectedCycles.forEach((cycle) => {
     cycle.involvedItemIds.forEach((itemId) => {
@@ -56,14 +52,11 @@ export function mapPlanToFlowMerged(
   });
 
   const getOrCreateNodeId = (node: ProductionNode): string => {
-    if (
-      node.isRawMaterial &&
-      breakPointItemIds.has(node.item.id) &&
-      itemIdToCycle.has(node.item.id)
-    ) {
+    // If this is a cycle placeholder, return the ID of the actual production node it references
+    if (node.isCyclePlaceholder && node.cycleItemId) {
       const productionKey = Array.from(aggregatedNodes.keys()).find((key) => {
         const parts = key.split("__");
-        return parts[0] === node.item.id && parts[2] === "prod";
+        return parts[0] === node.cycleItemId && parts[2] === "prod";
       });
 
       if (productionKey) {
@@ -101,12 +94,8 @@ export function mapPlanToFlowMerged(
     const nodeId = getOrCreateNodeId(node);
     const key = createFlowNodeKey(node);
 
-    const isBreakPointRawMaterial =
-      node.isRawMaterial &&
-      breakPointItemIds.has(node.item.id) &&
-      itemIdToCycle.has(node.item.id);
-
-    if (isBreakPointRawMaterial) {
+    // Handle cycle placeholder: create edge back to the actual node
+    if (node.isCyclePlaceholder) {
       if (parentId && parentId !== nodeId) {
         const flowRate = node.targetRate;
 
@@ -117,14 +106,8 @@ export function mapPlanToFlowMerged(
         if (!edgeExists) {
           const edgeId = `e${edgeIdCounter.count++}`;
 
-          const isPartOfCycle = isEdgePartOfCycle(
-            node.item.id,
-            parentId,
-            nodeKeyToId,
-            detectedCycles,
-          );
+          const isPartOfCycle = true; // By definition, placeholder creates a cycle
 
-          // Get levels for handle position determination
           const sourceLevel = getNodeLevel(node, key);
           const targetLevel = parentKey
             ? getNodeLevel(node, parentKey)

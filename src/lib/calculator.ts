@@ -22,6 +22,12 @@ export type ProductionNode = {
   dependencies: ProductionNode[];
   manualRawMaterials?: Set<ItemId>;
   level?: number;
+
+  // Cycle support fields
+  isCyclePlaceholder?: boolean; // Marks a node that points back to create a cycle
+  cycleItemId?: ItemId; // The item this placeholder points back to
+  isPartOfCycle?: boolean; // Whether this node participates in a cycle
+  cycleId?: string; // ID of the cycle this node belongs to
 };
 
 /**
@@ -119,6 +125,11 @@ function collectProducedItems(nodes: ProductionNode[]): Set<ItemId> {
   const producedItemIds = new Set<ItemId>();
 
   const collect = (node: ProductionNode) => {
+    // Skip cycle placeholders - they reference items produced elsewhere
+    if (node.isCyclePlaceholder) {
+      return;
+    }
+
     if (!node.isRawMaterial && node.recipe) {
       producedItemIds.add(node.item.id);
     }
@@ -134,6 +145,11 @@ function isCircularDependency(
   node: ProductionNode,
   producedItemIds: Set<ItemId>,
 ): boolean {
+  // Cycle placeholders are not circular dependencies - they're intentional back-references
+  if (node.isCyclePlaceholder) {
+    return false;
+  }
+
   // A node is a circular dependency if it's marked as a raw material,
   // but it is an item that is actually produced somewhere else in the graph.
   return node.isRawMaterial && producedItemIds.has(node.item.id);
@@ -533,6 +549,105 @@ function calculateCycleNetOutputs(
 }
 
 /**
+ * Solves a self-sufficient production cycle to determine facility counts.
+ *
+ * For a cycle like Plant → Seed×2 → Plant with target output of 1 Plant/min:
+ * - Sets up linear equations for production balance
+ * - Solves for facility counts that achieve steady-state with desired output
+ *
+ * @param detectedCycle The cycle information
+ * @param targetItemId Which item to extract from the cycle
+ * @param targetOutputRate Desired net output rate (items/min)
+ * @param maps Item/Recipe/Facility lookup maps
+ * @returns Map of recipeId -> facility count for steady-state operation
+ */
+function solveCycleForOutput(
+  detectedCycle: DetectedCycle,
+  targetItemId: ItemId,
+  targetOutputRate: number,
+  maps: ProductionMaps,
+): Map<RecipeId, number> {
+  const solution = new Map<RecipeId, number>();
+
+  // Verify the target item is part of the cycle
+  if (!detectedCycle.involvedItemIds.includes(targetItemId)) {
+    throw new Error(
+      `Target item ${targetItemId} is not part of cycle ${detectedCycle.cycleId}`,
+    );
+  }
+
+  const itemIds = detectedCycle.involvedItemIds;
+  const recipeIds: RecipeId[] = [];
+
+  // Find the recipe for each item in the cycle
+  detectedCycle.cycleNodes.forEach((node) => {
+    if (node.recipe) {
+      recipeIds.push(node.recipe.id);
+    }
+  });
+
+  // Simple 2-step cycle solver (can be extended for complex cycles)
+  if (itemIds.length === 2 && recipeIds.length === 2) {
+    const [itemA, itemB] = itemIds;
+    const recipeA = maps.recipeMap.get(recipeIds[0])!;
+    const recipeB = maps.recipeMap.get(recipeIds[1])!;
+
+    // Determine which recipe produces which item
+    const recipeForA = recipeA.outputs.some((o) => o.itemId === itemA)
+      ? recipeA
+      : recipeB;
+    const recipeForB = recipeA.outputs.some((o) => o.itemId === itemB)
+      ? recipeA
+      : recipeB;
+
+    // Calculate production rates per facility (items per minute)
+    const outputA = recipeForA.outputs.find((o) => o.itemId === itemA)!;
+    const outputB = recipeForB.outputs.find((o) => o.itemId === itemB)!;
+    const rateA = (outputA.amount * 60) / recipeForA.craftingTime;
+    const rateB = (outputB.amount * 60) / recipeForB.craftingTime;
+
+    // Calculate consumption rates per facility (items per minute)
+    const inputAinB = recipeForB.inputs.find((i) => i.itemId === itemA);
+    const inputBinA = recipeForA.inputs.find((i) => i.itemId === itemB);
+
+    const consumeA = inputAinB
+      ? (inputAinB.amount * 60) / recipeForB.craftingTime
+      : 0;
+    const consumeB = inputBinA
+      ? (inputBinA.amount * 60) / recipeForA.craftingTime
+      : 0;
+
+    // Solve the system:
+    // For item A: countA * rateA = countB * consumeA + netOutputA
+    // For item B: countB * rateB = countA * consumeB + netOutputB
+
+    const netOutputA = targetItemId === itemA ? targetOutputRate : 0;
+    const netOutputB = targetItemId === itemB ? targetOutputRate : 0;
+
+    // From equation B: countB = (countA * consumeB + netOutputB) / rateB
+    // Substitute into A: countA * rateA = ((countA * consumeB + netOutputB) / rateB) * consumeA + netOutputA
+    // Simplify: countA * rateA = countA * consumeB * consumeA / rateB + netOutputB * consumeA / rateB + netOutputA
+    // countA * (rateA - consumeB * consumeA / rateB) = netOutputA + netOutputB * consumeA / rateB
+
+    const coeffA = rateA - (consumeB * consumeA) / rateB;
+    const rhsA = netOutputA + (netOutputB * consumeA) / rateB;
+
+    const countA = rhsA / coeffA;
+    const countB = (countA * consumeB + netOutputB) / rateB;
+
+    solution.set(recipeForA.id, countA);
+    solution.set(recipeForB.id, countB);
+  } else {
+    // For more complex cycles, use general linear solver (placeholder for now)
+    throw new Error(
+      `Complex cycles with ${itemIds.length} steps not yet supported`,
+    );
+  }
+
+  return solution;
+}
+
+/**
  * Generates a unique cycle ID based on the involved items.
  */
 function generateCycleId(involvedItemIds: ItemId[]): string {
@@ -573,19 +688,20 @@ function buildDependencyTree(
 ): { rootNodes: ProductionNode[]; detectedCycles: DetectedCycle[] } {
   const detectedCycles: DetectedCycle[] = [];
 
-  // Modified version of calculateNode that collects cycle info
-  const calculateNodeWithCycleDetection = (
+  // First pass: build tree and detect cycles (without solving them yet)
+  const calculateNodeFirstPass = (
     itemId: ItemId,
     requiredRate: number,
     visitedPath: Set<ItemId>,
     isDirectTarget: boolean,
+    currentCycleId?: string,
   ): ProductionNode => {
     const item = maps.itemMap.get(itemId);
     if (!item) throw new Error(`Item not found: ${itemId}`);
 
-    // Check for circular dependency BEFORE creating the break
+    // Check for circular dependency
     if (visitedPath.has(itemId)) {
-      // Reconstruct the cycle path
+      // Reconstruct cycle path
       const pathArray = Array.from(visitedPath);
       const cycleStartIndex = pathArray.indexOf(itemId);
       const cyclePath = pathArray.slice(cycleStartIndex);
@@ -614,16 +730,19 @@ function buildDependencyTree(
         detectedCycles.push(cycle);
       }
 
-      // Return the break node (same as original calculateNode logic)
+      // Return a placeholder node that points back to create the cycle
       return {
         item,
         targetRate: requiredRate,
         recipe: null,
         facility: null,
         facilityCount: 0,
-        isRawMaterial: true,
+        isRawMaterial: false,
         isTarget: false,
         dependencies: [],
+        isCyclePlaceholder: true,
+        cycleItemId: itemId,
+        cycleId,
       };
     }
 
@@ -658,7 +777,7 @@ function buildDependencyTree(
       };
     }
 
-    // Add current item to visited path BEFORE recipe selection
+    // Add current item to visited path
     const newVisitedPath = new Set(visitedPath);
     newVisitedPath.add(itemId);
 
@@ -677,27 +796,28 @@ function buildDependencyTree(
     if (!facility)
       throw new Error(`Facility not found: ${selectedRecipe.facilityId}`);
 
-    // Production rate calculation
+    // Production rate calculation (temporary, will be updated for cycles)
     const outputAmount =
       selectedRecipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
     const cyclesPerMinute = 60 / selectedRecipe.craftingTime;
     const outputRatePerFacility = outputAmount * cyclesPerMinute;
 
-    // Calculate required facilities
+    // Calculate required facilities (temporary for non-cycle nodes)
     const facilityCount = requiredRate / outputRatePerFacility;
 
-    // Recursively calculate dependencies using the wrapper function
+    // Recursively calculate dependencies
     const dependencies = selectedRecipe.inputs.map((input) => {
       const inputRate = input.amount * cyclesPerMinute * facilityCount;
-      return calculateNodeWithCycleDetection(
+      return calculateNodeFirstPass(
         input.itemId,
         inputRate,
         newVisitedPath,
         false,
+        currentCycleId,
       );
     });
 
-    return {
+    const node: ProductionNode = {
       item,
       targetRate: requiredRate,
       recipe: selectedRecipe,
@@ -706,12 +826,168 @@ function buildDependencyTree(
       isRawMaterial: false,
       isTarget: isDirectTarget,
       dependencies,
+      isPartOfCycle: currentCycleId !== undefined,
+      cycleId: currentCycleId,
     };
+
+    return node;
   };
 
+  // Build initial tree
   const rootNodes = targets.map((t) =>
-    calculateNodeWithCycleDetection(t.itemId, t.rate, new Set(), true),
+    calculateNodeFirstPass(t.itemId, t.rate, new Set(), true),
   );
+
+  // Second pass: solve cycles and update facility counts
+  detectedCycles.forEach((cycle) => {
+    const cycleItemSet = new Set(cycle.involvedItemIds);
+
+    // Find all consumption of cycle items from outside the cycle
+    // Strategy: traverse the tree and find nodes that consume cycle items
+    // but are not themselves part of the cycle
+    const externalConsumption = new Map<ItemId, number>();
+
+    const findExternalConsumption = (
+      node: ProductionNode,
+      ancestorInCycle: boolean = false,
+    ) => {
+      // Skip placeholders
+      if (node.isCyclePlaceholder) {
+        return;
+      }
+
+      const nodeIsInCycle =
+        cycleItemSet.has(node.item.id) && !node.isRawMaterial;
+
+      // If current node is NOT in cycle but has dependencies that ARE in cycle,
+      // those dependencies represent external consumption
+      if (!nodeIsInCycle && !ancestorInCycle) {
+        node.dependencies.forEach((dep) => {
+          // Skip placeholders
+          if (dep.isCyclePlaceholder) {
+            return;
+          }
+
+          const depIsInCycle =
+            cycleItemSet.has(dep.item.id) && !dep.isRawMaterial;
+
+          if (depIsInCycle) {
+            const current = externalConsumption.get(dep.item.id) || 0;
+            externalConsumption.set(dep.item.id, current + dep.targetRate);
+          }
+        });
+      }
+
+      // Continue traversing (mark if we're now inside the cycle)
+      node.dependencies.forEach((dep) => {
+        findExternalConsumption(dep, nodeIsInCycle || ancestorInCycle);
+      });
+    };
+
+    rootNodes.forEach((node) => findExternalConsumption(node));
+
+    if (externalConsumption.size === 0) {
+      console.warn("No external consumption found for cycle:", cycle.cycleId);
+      return;
+    }
+
+    // Find the item with the most external consumption (primary extraction point)
+    let extractionItemId: ItemId | null = null;
+    let maxConsumption = 0;
+
+    for (const [itemId, rate] of externalConsumption.entries()) {
+      if (rate > maxConsumption) {
+        maxConsumption = rate;
+        extractionItemId = itemId;
+      }
+    }
+
+    if (!extractionItemId) {
+      console.warn(
+        "Could not determine extraction point for cycle:",
+        cycle.cycleId,
+      );
+      return;
+    }
+
+    try {
+      // Solve the cycle for the extraction point
+      const solution = solveCycleForOutput(
+        cycle,
+        extractionItemId,
+        maxConsumption,
+        maps,
+      );
+
+      // Update nodes in the tree with solved facility counts
+      const updateCycleNodes = (node: ProductionNode) => {
+        // Skip placeholders - they don't have recipes
+        if (node.isCyclePlaceholder) {
+          node.dependencies.forEach(updateCycleNodes);
+          return;
+        }
+
+        if (node.recipe && solution.has(node.recipe.id)) {
+          const solvedCount = solution.get(node.recipe.id)!;
+
+          node.facilityCount = solvedCount;
+          node.isPartOfCycle = true;
+          node.cycleId = cycle.cycleId;
+
+          // Recalculate dependency rates based on solved facility count
+          const cyclesPerMinute = 60 / node.recipe.craftingTime;
+          node.recipe.inputs.forEach((input, index) => {
+            if (node.dependencies[index]) {
+              const inputRate = input.amount * cyclesPerMinute * solvedCount;
+              node.dependencies[index].targetRate = inputRate;
+
+              // Also update the targetRate of the dependency node itself
+              updateDependencyRate(node.dependencies[index], inputRate);
+            }
+          });
+        }
+
+        node.dependencies.forEach(updateCycleNodes);
+      };
+
+      // Helper to update a node's targetRate (used for cycle feedback)
+      const updateDependencyRate = (node: ProductionNode, newRate: number) => {
+        node.targetRate = newRate;
+
+        // If this node has a recipe, recalculate its dependencies
+        if (node.recipe && !node.isCyclePlaceholder) {
+          const recipe = node.recipe;
+          if (!recipe || node.isCyclePlaceholder) {
+            return;
+          }
+
+          const cyclesPerMinute = 60 / recipe.craftingTime;
+
+          const output = recipe.outputs.find((o) => o.itemId === node.item.id);
+
+          if (!output) {
+            return;
+          }
+
+          node.recipe.inputs.forEach((input, index) => {
+            const dependency = node.dependencies[index];
+            if (!dependency) return;
+
+            const inputRate =
+              input.amount *
+              cyclesPerMinute *
+              (newRate / output.amount / cyclesPerMinute);
+
+            dependency.targetRate = inputRate;
+          });
+        }
+      };
+
+      rootNodes.forEach(updateCycleNodes);
+    } catch (error) {
+      console.error(`Failed to solve cycle ${cycle.cycleId}:`, error);
+    }
+  });
 
   return { rootNodes, detectedCycles };
 }
