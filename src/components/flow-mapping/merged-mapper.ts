@@ -1,17 +1,14 @@
 import { Position, MarkerType } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
-import type { Item, Facility } from "@/types";
+import type { Item, Facility, ItemId } from "@/types";
 import type { ProductionNode, DetectedCycle } from "@/lib/calculator";
 import type { FlowNodeData, FlowProductionNode, FlowTargetNode } from "./types";
 import { applyEdgeStyling } from "./edge-styling";
 import {
   createFlowNodeKey,
   aggregateProductionNodes,
-  makeNodeIdFromKey,
   findTargetsWithDownstream,
   createCycleInfo,
-  isEdgePartOfCycle,
-  determineHandlePositions,
 } from "./flow-utils";
 
 /**
@@ -41,18 +38,9 @@ export function mapPlanToFlowMerged(
 
   const aggregatedNodes = aggregateProductionNodes(rootNodes);
   const itemMap = new Map(items.map((item) => [item.id, item]));
-
   const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
 
-  const itemIdToCycle = new Map<import("@/types").ItemId, DetectedCycle>();
-  detectedCycles.forEach((cycle) => {
-    cycle.involvedItemIds.forEach((itemId) => {
-      itemIdToCycle.set(itemId, cycle);
-    });
-  });
-
   const getOrCreateNodeId = (node: ProductionNode): string => {
-    // If this is a cycle placeholder, return the ID of the actual production node it references
     if (node.isCyclePlaceholder && node.cycleItemId) {
       const productionKey = Array.from(aggregatedNodes.keys()).find((key) => {
         const parts = key.split("__");
@@ -61,7 +49,7 @@ export function mapPlanToFlowMerged(
 
       if (productionKey) {
         if (!nodeKeyToId.has(productionKey)) {
-          nodeKeyToId.set(productionKey, makeNodeIdFromKey(productionKey));
+          nodeKeyToId.set(productionKey, `node-${productionKey}`);
         }
         return nodeKeyToId.get(productionKey)!;
       }
@@ -71,18 +59,14 @@ export function mapPlanToFlowMerged(
     if (nodeKeyToId.has(key)) {
       return nodeKeyToId.get(key)!;
     }
-    const nodeId = makeNodeIdFromKey(key);
+    const nodeId = `node-${key}`;
     nodeKeyToId.set(key, nodeId);
     return nodeId;
   };
 
-  // Helper function to get level for a node
   const getNodeLevel = (node: ProductionNode, key: string): number => {
     if (node.level !== undefined) return node.level;
-    if (keyToLevel) {
-      return keyToLevel.get(key) || 0;
-    }
-    return 0;
+    return keyToLevel?.get(key) || 0;
   };
 
   const traverse = (
@@ -94,72 +78,54 @@ export function mapPlanToFlowMerged(
     const nodeId = getOrCreateNodeId(node);
     const key = createFlowNodeKey(node);
 
-    // Handle cycle placeholder: create edge back to the actual node
     if (node.isCyclePlaceholder) {
       if (parentId && parentId !== nodeId) {
         const flowRate = node.targetRate;
-
         const edgeExists = edges.some(
           (e) => e.source === nodeId && e.target === parentId,
         );
 
         if (!edgeExists) {
-          const edgeId = `e${edgeIdCounter.count++}`;
-
-          const isPartOfCycle = true; // By definition, placeholder creates a cycle
-
           const sourceLevel = getNodeLevel(node, key);
           const targetLevel = parentKey
             ? getNodeLevel(node, parentKey)
             : sourceLevel;
-
           const handlePositions = determineHandlePositions(
             sourceLevel,
             targetLevel,
-            isPartOfCycle,
+            true,
           );
 
-          edges.push({
-            id: edgeId,
-            source: nodeId,
-            target: parentId,
-            type: "default",
-            label: `${flowRate.toFixed(2)} /min`,
-            data: {
+          edges.push(
+            createEdge(
+              `e${edgeIdCounter.count++}`,
+              nodeId,
+              parentId,
               flowRate,
-              isPartOfCycle,
-            },
-            sourceHandle: handlePositions.sourceHandle,
-            targetHandle: handlePositions.targetHandle,
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-            },
-          });
+              {
+                isPartOfCycle: true,
+                ...handlePositions,
+              },
+            ),
+          );
         }
       }
-
       return nodeId;
     }
 
+    // 内联 shouldSkipNode
     const isTargetWithoutDownstream =
       node.isTarget && !targetsWithDownstream.has(key);
 
     if (isTargetWithoutDownstream) {
-      node.dependencies.forEach((dep) => {
-        traverse(dep, null, edgeIdCounter);
-      });
-
+      node.dependencies.forEach((dep) => traverse(dep, null, edgeIdCounter));
       return nodeId;
     }
 
     if (!nodes.find((n) => n.id === nodeId)) {
       const aggregatedData = aggregatedNodes.get(key)!;
       const isCircular = node.isRawMaterial && node.recipe !== null;
-
       const isDirectTarget = node.isTarget && targetsWithDownstream.has(key);
-      const directTargetRate = isDirectTarget
-        ? aggregatedData.totalRate
-        : undefined;
 
       const aggregatedNode: ProductionNode = {
         ...aggregatedData.node,
@@ -172,7 +138,6 @@ export function mapPlanToFlowMerged(
         detectedCycles,
         itemMap,
       );
-
       const level = getNodeLevel(aggregatedData.node, key);
 
       nodes.push({
@@ -184,7 +149,9 @@ export function mapPlanToFlowMerged(
           items,
           facilities,
           isDirectTarget,
-          directTargetRate,
+          directTargetRate: isDirectTarget
+            ? aggregatedData.totalRate
+            : undefined,
           cycleInfo,
           level,
         },
@@ -196,63 +163,46 @@ export function mapPlanToFlowMerged(
 
     if (parentId && parentId !== nodeId) {
       const flowRate = node.targetRate;
-
       const edgeExists = edges.some(
         (e) => e.source === nodeId && e.target === parentId,
       );
 
       if (!edgeExists) {
-        const edgeId = `e${edgeIdCounter.count++}`;
-
         const isPartOfCycle = isEdgePartOfCycle(
           node.item.id,
           parentId,
           nodeKeyToId,
           detectedCycles,
         );
-
-        // Get levels for handle position determination
         const sourceLevel = getNodeLevel(node, key);
         const targetLevel = parentKey
           ? getNodeLevel(node, parentKey)
           : sourceLevel;
-
         const handlePositions = determineHandlePositions(
           sourceLevel,
           targetLevel,
           isPartOfCycle,
         );
 
-        edges.push({
-          id: edgeId,
-          source: nodeId,
-          target: parentId,
-          type: "default",
-          label: `${flowRate.toFixed(2)} /min`,
-          data: {
-            flowRate,
+        edges.push(
+          createEdge(`e${edgeIdCounter.count++}`, nodeId, parentId, flowRate, {
             isPartOfCycle,
-          },
-          sourceHandle: handlePositions.sourceHandle,
-          targetHandle: handlePositions.targetHandle,
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-          },
-        });
+            ...handlePositions,
+          }),
+        );
       }
     }
 
-    node.dependencies.forEach((dep) => {
-      traverse(dep, nodeId, edgeIdCounter, key);
-    });
-
+    node.dependencies.forEach((dep) =>
+      traverse(dep, nodeId, edgeIdCounter, key),
+    );
     return nodeId;
   };
 
   const edgeIdCounter = { count: 0 };
   rootNodes.forEach((root) => traverse(root, null, edgeIdCounter));
 
-  // Create target sink nodes for all targets
+  // Create target sink nodes
   const targetNodes = Array.from(aggregatedNodes.entries()).filter(
     ([, data]) => data.node.isTarget && !data.node.isRawMaterial,
   );
@@ -260,14 +210,6 @@ export function mapPlanToFlowMerged(
   targetNodes.forEach(([key, data]) => {
     const targetNodeId = `target-sink-${data.node.item.id}`;
     const hasDownstream = targetsWithDownstream.has(key);
-
-    const productionInfo = !hasDownstream
-      ? {
-          facility: data.node.facility,
-          facilityCount: data.totalFacilityCount,
-          recipe: data.node.recipe,
-        }
-      : undefined;
 
     targetSinkNodes.push({
       id: targetNodeId,
@@ -277,37 +219,36 @@ export function mapPlanToFlowMerged(
         targetRate: data.totalRate,
         items,
         facilities,
-        productionInfo,
+        productionInfo: !hasDownstream
+          ? {
+              facility: data.node.facility,
+              facilityCount: data.totalFacilityCount,
+              recipe: data.node.recipe,
+            }
+          : undefined,
       },
       position: { x: 0, y: 0 },
       targetPosition: Position.Left,
     });
 
     if (hasDownstream) {
-      // Target with downstream: connect from production node
-      const nodeId = makeNodeIdFromKey(key);
-
-      edges.push({
-        id: `e${edgeIdCounter.count++}`,
-        source: nodeId,
-        target: targetNodeId,
-        type: "default",
-        label: `${data.totalRate.toFixed(2)} /min`,
-        data: { flowRate: data.totalRate },
-        animated: true,
-        style: { stroke: "#10b981", strokeWidth: 2 },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: "#10b981",
-        },
-      });
+      const nodeId = `node-${key}`;
+      edges.push(
+        createEdge(
+          `e${edgeIdCounter.count++}`,
+          nodeId,
+          targetNodeId,
+          data.totalRate,
+          {
+            animated: true,
+            style: { stroke: "#10b981", strokeWidth: 2 },
+          },
+        ),
+      );
     } else {
-      // Target without downstream: connect from dependencies
       const targetNode = data.node;
-
       targetNode.dependencies.forEach((dep) => {
         const depNodeId = getOrCreateNodeId(dep);
-
         const recipe = targetNode.recipe;
         if (!recipe) return;
 
@@ -317,26 +258,22 @@ export function mapPlanToFlowMerged(
         const outputItem = recipe.outputs.find(
           (out) => out.itemId === targetNode.item.id,
         );
-
         if (!inputItem || !outputItem) return;
 
-        const inputOutputRatio = inputItem.amount / outputItem.amount;
-        const flowRate = inputOutputRatio * data.totalRate;
-
-        edges.push({
-          id: `e${edgeIdCounter.count++}`,
-          source: depNodeId,
-          target: targetNodeId,
-          type: "default",
-          label: `${flowRate.toFixed(2)} /min`,
-          data: { flowRate },
-          animated: true,
-          style: { stroke: "#10b981", strokeWidth: 2 },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: "#10b981",
-          },
-        });
+        const flowRate =
+          (inputItem.amount / outputItem.amount) * data.totalRate;
+        edges.push(
+          createEdge(
+            `e${edgeIdCounter.count++}`,
+            depNodeId,
+            targetNodeId,
+            flowRate,
+            {
+              animated: true,
+              style: { stroke: "#10b981", strokeWidth: 2 },
+            },
+          ),
+        );
       });
     }
   });
@@ -349,5 +286,84 @@ export function mapPlanToFlowMerged(
       | FlowTargetNode
     )[],
     edges: styledEdges,
+  };
+}
+
+function isEdgePartOfCycle(
+  sourceItemId: ItemId,
+  targetNodeId: string,
+  nodeKeyToId: Map<string, string>,
+  detectedCycles: DetectedCycle[],
+): boolean {
+  const sourceCycle = detectedCycles.find((c) =>
+    c.involvedItemIds.includes(sourceItemId),
+  );
+  if (!sourceCycle) return false;
+
+  for (const [key, nodeId] of nodeKeyToId.entries()) {
+    if (nodeId === targetNodeId) {
+      const targetItemId = key.split("__")[0] as ItemId;
+      return sourceCycle.involvedItemIds.includes(targetItemId);
+    }
+  }
+  return false;
+}
+
+function determineHandlePositions(
+  sourceLevel: number,
+  targetLevel: number,
+  isPartOfCycle: boolean,
+) {
+  const levelDiff = Math.abs(sourceLevel - targetLevel);
+
+  if (isPartOfCycle && levelDiff <= 1) {
+    return {
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+      sourceHandle: "bottom",
+      targetHandle: "top",
+    };
+  }
+
+  return {
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
+    sourceHandle: "right",
+    targetHandle: "left",
+  };
+}
+
+// 新增：统一的边创建函数
+function createEdge(
+  id: string,
+  source: string,
+  target: string,
+  flowRate: number,
+  options: {
+    isPartOfCycle?: boolean;
+    animated?: boolean;
+    style?: React.CSSProperties;
+    sourceHandle?: string;
+    targetHandle?: string;
+  } = {},
+): Edge {
+  return {
+    id,
+    source,
+    target,
+    type: "default",
+    label: `${flowRate.toFixed(2)} /min`,
+    data: {
+      flowRate,
+      isPartOfCycle: options.isPartOfCycle,
+    },
+    sourceHandle: options.sourceHandle,
+    targetHandle: options.targetHandle,
+    animated: options.animated,
+    style: options.style,
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: options.style?.stroke as string,
+    },
   };
 }
