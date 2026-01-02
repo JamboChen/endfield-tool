@@ -5,53 +5,11 @@ import type {
   ItemId,
   RecipeId,
   FacilityId,
+  ProductionNode,
+  DetectedCycle,
+  UnifiedProductionPlan,
 } from "@/types";
 import { topologicalSort } from "./utils";
-
-/**
- * Represents a single step in the production chain.
- * This is the building block for the dependency tree.
- */
-export type ProductionNode = {
-  item: Item;
-  targetRate: number;
-  recipe: Recipe | null;
-  facility: Facility | null;
-  facilityCount: number;
-  isRawMaterial: boolean;
-  isTarget: boolean;
-  dependencies: ProductionNode[];
-  manualRawMaterials?: Set<ItemId>;
-  level?: number;
-
-  // Cycle support fields
-  isCyclePlaceholder?: boolean;
-  cycleItemId?: ItemId;
-};
-
-/**
- * Represents a detected production cycle in the dependency graph.
- */
-export type DetectedCycle = {
-  cycleId: string;
-  involvedItemIds: ItemId[];
-  breakPointItemId: ItemId;
-  cycleNodes: ProductionNode[];
-  netOutputs: Map<ItemId, number>;
-};
-
-/**
- * The unified output structure for the production plan.
- */
-export type UnifiedProductionPlan = {
-  dependencyRootNodes: ProductionNode[];
-  flatList: ProductionNode[];
-  totalPowerConsumption: number;
-  rawMaterialRequirements: Map<ItemId, number>;
-  manualRawMaterials?: Set<ItemId>;
-  detectedCycles: DetectedCycle[];
-  keyToLevel?: Map<string, number>;
-};
 
 export type RecipeSelector = (
   availableRecipes: Recipe[],

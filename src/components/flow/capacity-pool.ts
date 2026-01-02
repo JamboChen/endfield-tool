@@ -2,8 +2,8 @@ import type {
   CapacityPoolEntry,
   FacilityInstance,
   AllocationResult,
-} from "./types";
-import type { ProductionNode } from "@/lib/calculator";
+  ProductionNode,
+} from "@/types";
 
 /**
  * Manages capacity pools for production facilities in separated visualization mode.

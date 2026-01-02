@@ -1,13 +1,12 @@
 import {
   calculateProductionPlan,
   smartRecipeSelector,
-  type UnifiedProductionPlan,
 } from "../lib/calculator";
-import { items, recipes, facilities } from "../data";
+import { items, recipes, facilities } from "@/data";
 import { useState, useMemo, useCallback } from "react";
-import type { ProductionTarget } from "../components/TargetItemsGrid";
-import type { ItemId, RecipeId } from "../types";
-import type { ProductionLineData } from "../components/ProductionTable";
+import type { ProductionTarget } from "@/components/panels/TargetItemsGrid";
+import type { ItemId, RecipeId, UnifiedProductionPlan } from "@/types";
+import type { ProductionLineData } from "@/components/production/ProductionTable";
 import { useTranslation } from "react-i18next";
 
 export function useProductionPlan() {

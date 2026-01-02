@@ -10,20 +10,21 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { Item, Facility } from "@/types";
-import type { UnifiedProductionPlan } from "@/lib/calculator";
-import CustomProductionNode from "./tree-node/CustomProductionNode";
-import CustomTargetNode from "./tree-node/CustomTargetNode";
 import type {
+  Item,
+  Facility,
   FlowProductionNode,
   VisualizationMode,
-} from "./flow-mapping/types";
+  UnifiedProductionPlan,
+} from "@/types";
+import CustomProductionNode from "../nodes/CustomProductionNode";
+import CustomTargetNode from "../nodes/CustomTargetNode";
 import { useTranslation } from "react-i18next";
 import { getLayoutedElements } from "@/lib/layout";
-import { mapPlanToFlowMerged } from "./flow-mapping/merged-mapper";
-import { mapPlanToFlowSeparated } from "./flow-mapping/separated-mapper";
-import { applyEdgeStyling } from "./flow-mapping/flow-utils";
-import CustomBackwardEdge from "./tree-node/CustomBackwardEdge";
+import { mapPlanToFlowMerged } from "../mappers/merged-mapper";
+import { mapPlanToFlowSeparated } from "../mappers/separated-mapper";
+import { applyEdgeStyling } from "./flow-utils";
+import CustomBackwardEdge from "../nodes/CustomBackwardEdge";
 
 /**
  * Props for the ProductionDependencyTree component.

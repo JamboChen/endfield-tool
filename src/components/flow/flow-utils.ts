@@ -1,4 +1,4 @@
-import type { ProductionNode } from "@/lib/calculator";
+import type { ProductionNode } from "@/types";
 import { MarkerType, type Edge } from "@xyflow/react";
 
 /**

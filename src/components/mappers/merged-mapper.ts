@@ -1,14 +1,20 @@
 import { Position } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
-import type { Item, Facility } from "@/types";
-import type { ProductionNode } from "@/lib/calculator";
-import type { FlowNodeData, FlowProductionNode, FlowTargetNode } from "./types";
+import type {
+  Item,
+  Facility,
+  ProductionNode,
+  FlowNodeData,
+  FlowProductionNode,
+  FlowTargetNode,
+} from "@/types";
+import type {} from "@/lib/calculator";
 import {
   createFlowNodeKey,
   aggregateProductionNodes,
   findTargetsWithDownstream,
   createEdge,
-} from "./flow-utils";
+} from "../flow/flow-utils";
 
 /**
  * Maps a UnifiedProductionPlan to React Flow nodes and edges in merged mode.
@@ -32,7 +38,7 @@ export function mapPlanToFlowMerged(
   const nodes: Node<FlowNodeData>[] = [];
   const edges: Edge[] = [];
   const nodeKeyToId = new Map<string, string>();
-  const targetSinkNodes: Node<import("./types").TargetSinkNodeData>[] = [];
+  const targetSinkNodes: FlowTargetNode[] = [];
 
   const aggregatedNodes = aggregateProductionNodes(rootNodes);
   const targetsWithDownstream = findTargetsWithDownstream(rootNodes);

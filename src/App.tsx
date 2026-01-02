@@ -3,11 +3,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { items, facilities } from "./data";
 import { useProductionPlan } from "./hooks/useProductionPlan";
-import AppHeader from "./components/AppHeader";
-import LeftPanel from "./components/LeftPanel";
-import ProductionViewTabs from "./components/ProductionViewTabs";
-import AddTargetDialogGrid from "./components/AddTargetDialogGrid";
-import AppFooter from "./components/AppFooter";
+import AppHeader from "./components/layout/AppHeader";
+import LeftPanel from "./components/panels/LeftPanel";
+import ProductionViewTabs from "./components/production/ProductionViewTabs";
+import AddTargetDialogGrid from "./components/panels/AddTargetDialogGrid";
+import AppFooter from "./components/layout/AppFooter";
 
 export default function App() {
   const { i18n } = useTranslation("app");

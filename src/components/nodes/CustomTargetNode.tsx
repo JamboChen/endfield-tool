@@ -6,10 +6,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ItemIcon } from "../ProductionTable";
+import { ItemIcon } from "../production/ProductionTable";
 import { getItemName, getFacilityName } from "@/lib/i18n-helpers";
 import { useTranslation } from "react-i18next";
-import type { TargetSinkNodeData } from "../flow-mapping/types";
+import type { TargetSinkNodeData } from "@/types";
 
 /**
  * Formats a number to a fixed number of decimal places.

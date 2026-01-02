@@ -5,8 +5,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ItemIcon } from "../ProductionTable";
-import { RecipeIOFull } from "../ProductionTable";
+import { RecipeIOFull, ItemIcon } from "../production/ProductionTable";
 import { getItemName, getFacilityName } from "@/lib/i18n-helpers";
 import { useTranslation } from "react-i18next";
 import type {
@@ -14,7 +13,7 @@ import type {
   FlowNodeDataSeparated,
   FlowNodeDataSeparatedWithTarget,
   FlowNodeDataWithTarget,
-} from "../flow-mapping/types";
+} from "@/types";
 
 /**
  * Type alias for a React Flow node containing production data.

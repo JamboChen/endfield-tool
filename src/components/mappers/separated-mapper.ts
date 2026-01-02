@@ -1,9 +1,15 @@
 import { Position } from "@xyflow/react";
 import type { Edge } from "@xyflow/react";
-import type { Item, Facility, ItemId } from "@/types";
-import type { DetectedCycle, ProductionNode } from "@/lib/calculator";
-import type { FlowProductionNode, FlowTargetNode } from "./types";
-import { CapacityPoolManager } from "./capacity-pool";
+import type {
+  Item,
+  Facility,
+  ItemId,
+  FlowProductionNode,
+  FlowTargetNode,
+  DetectedCycle,
+  ProductionNode,
+} from "@/types";
+import { CapacityPoolManager } from "../flow/capacity-pool";
 import {
   createFlowNodeKey,
   aggregateProductionNodes,
@@ -12,7 +18,7 @@ import {
   findTargetsWithDownstream,
   shouldSkipNode,
   createEdge,
-} from "./flow-utils";
+} from "../flow/flow-utils";
 import { calculateDemandRate, topologicalSort } from "@/lib/utils";
 
 /**

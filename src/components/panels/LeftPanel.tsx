@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TargetItemsGrid, { type ProductionTarget } from "./TargetItemsGrid";
-import ProductionStats from "./ProductionStats";
+import ProductionStats from "../production/ProductionStats";
 import type { Item } from "@/types";
 import { useTranslation } from "react-i18next";
 

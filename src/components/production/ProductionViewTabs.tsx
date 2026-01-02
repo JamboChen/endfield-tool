@@ -1,15 +1,19 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import ProductionTable from "./ProductionTable";
-import ProductionDependencyTree from "./ProductionDependencyTree";
+import ProductionDependencyTree from "../flow/ProductionDependencyTree";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { UnifiedProductionPlan } from "../lib/calculator";
-import type { Item, Facility } from "@/types";
+import type {
+  ItemId,
+  RecipeId,
+  Item,
+  Facility,
+  UnifiedProductionPlan,
+  VisualizationMode,
+} from "@/types";
 import type { ProductionLineData } from "./ProductionTable";
-import type { ItemId, RecipeId } from "@/types";
-import type { VisualizationMode } from "./flow-mapping/types";
 
 interface ProductionViewTabsProps {
   plan: UnifiedProductionPlan | null;

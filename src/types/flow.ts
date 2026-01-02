@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 import type { Item, Facility, Recipe } from "@/types";
-import type { ProductionNode } from "@/lib/calculator";
+import type { ProductionNode } from "@/types";
 
 /**
  * Visualization mode for the production dependency tree.
