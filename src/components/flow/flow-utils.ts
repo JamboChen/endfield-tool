@@ -1,4 +1,4 @@
-import type { ProductionNode } from "@/types";
+import type { ItemId, ProductionNode } from "@/types";
 import { MarkerType, type Edge } from "@xyflow/react";
 
 /**
@@ -44,10 +44,28 @@ export function aggregateProductionNodes(
 ): Map<string, AggregatedProductionNodeData> {
   const nodeMap = new Map<string, AggregatedProductionNodeData>();
 
+  const producedItemIds = new Set<ItemId>();
+  const collectProduced = (node: ProductionNode) => {
+    if (node.isCyclePlaceholder) {
+      node.dependencies.forEach(collectProduced);
+      return;
+    }
+    if (!node.isRawMaterial && node.recipe) {
+      producedItemIds.add(node.item.id);
+    }
+    node.dependencies.forEach(collectProduced);
+  };
+  rootNodes.forEach(collectProduced);
+
   const collect = (node: ProductionNode) => {
     // Skip cycle placeholders - they don't represent actual production
     if (node.isCyclePlaceholder) {
       // Still traverse their dependencies (though they should have none)
+      node.dependencies.forEach(collect);
+      return;
+    }
+
+    if (node.isRawMaterial && producedItemIds.has(node.item.id)) {
       node.dependencies.forEach(collect);
       return;
     }

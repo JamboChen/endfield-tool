@@ -6,7 +6,6 @@ import type {
   ItemId,
   FlowProductionNode,
   FlowTargetNode,
-  DetectedCycle,
   ProductionNode,
 } from "@/types";
 import { CapacityPoolManager } from "../flow/capacity-pool";
@@ -46,20 +45,42 @@ function topologicalSortNodes(
 }
 
 /**
- * Checks if a node is a circular breakpoint (a raw material node that's actually produced in a cycle).
- *
- * @param node The production node to check
- * @param detectedCycles All detected cycles
- * @returns True if this node is a breakpoint in any cycle
+ * Collects all produced (non-raw) item IDs from the node map.
+ * Used to identify circular dependencies (raw materials that are actually produced).
  */
-function isCircularBreakpoint(
+function collectProducedItems(
+  nodeMap: Map<string, AggregatedProductionNodeData>,
+): Set<ItemId> {
+  const produced = new Set<ItemId>();
+  nodeMap.forEach((data) => {
+    if (!data.node.isRawMaterial && data.node.recipe) {
+      produced.add(data.node.item.id);
+    }
+  });
+  return produced;
+}
+
+/**
+ * Checks if a node is a circular dependency:
+ * - It's marked as a raw material
+ * - But it's actually produced somewhere in the production chain
+ *
+ * These nodes should be skipped in favor of their production versions.
+ */
+function isCircularDependency(
   node: ProductionNode,
-  detectedCycles: DetectedCycle[],
+  producedItemIds: Set<ItemId>,
 ): boolean {
-  if (!node.isRawMaterial) return false;
-  return detectedCycles.some(
-    (cycle) => cycle.breakPointItemId === node.item.id,
-  );
+  if (node.isCyclePlaceholder) {
+    return true;
+  }
+
+  // Raw material that's actually produced (circular dependency)
+  if (node.isRawMaterial && producedItemIds.has(node.item.id)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -86,11 +107,22 @@ export function mapPlanToFlowSeparated(
   rootNodes: ProductionNode[],
   items: Item[],
   facilities: Facility[],
-  detectedCycles: DetectedCycle[] = [],
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
   const nodeMap = aggregateProductionNodes(rootNodes);
   const sortedKeys = topologicalSortNodes(nodeMap);
   const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
+  const producedItemIds = collectProducedItems(nodeMap); // 新增
+
+  console.log("=== NodeMap Debug ===");
+  nodeMap.forEach((data, key) => {
+    console.log(key, {
+      itemId: data.node.item.id,
+      isRawMaterial: data.node.isRawMaterial,
+      hasRecipe: !!data.node.recipe,
+      recipeId: data.node.recipe?.id,
+    });
+  });
+  console.log("=== Produced Items ===", Array.from(producedItemIds));
 
   // Initialize capacity pools
   const poolManager = new CapacityPoolManager();
@@ -99,7 +131,12 @@ export function mapPlanToFlowSeparated(
     const node = aggregatedData.node;
 
     if (shouldSkipNode(node, key, targetsWithDownstream)) return;
-    if (isCircularBreakpoint(node, detectedCycles)) return;
+    if (isCircularDependency(node, producedItemIds)) return;
+
+    if (!node.isRawMaterial && !node.recipe) {
+      console.warn(`Skipping invalid production node without recipe: ${key}`);
+      return;
+    }
 
     poolManager.createPool(
       {
@@ -117,8 +154,12 @@ export function mapPlanToFlowSeparated(
     const node = aggregatedData.node;
 
     if (shouldSkipNode(node, key, targetsWithDownstream)) return;
-    if (isCircularBreakpoint(node, detectedCycles)) return;
+    if (isCircularDependency(node, producedItemIds)) return;
 
+    if (!node.isRawMaterial && !node.recipe) {
+      console.warn(`Skipping invalid production node without recipe: ${key}`);
+      return;
+    }
     const isDirectTarget = node.isTarget && targetsWithDownstream.has(key);
     const directTargetRate = isDirectTarget
       ? aggregatedData.totalRate
@@ -175,13 +216,17 @@ export function mapPlanToFlowSeparated(
 
     if (shouldSkipNode(consumerNode, consumerKey, targetsWithDownstream))
       return;
-    if (isCircularBreakpoint(consumerNode, detectedCycles)) return;
+    if (isCircularDependency(consumerNode, producedItemIds)) return;
+
+    if (!consumerNode.recipe) {
+      console.warn(`Skipping node without recipe: ${consumerKey}`);
+      return;
+    }
 
     poolManager
       .getFacilityInstances(consumerKey)
       .forEach((consumerFacility) => {
         consumerNode.dependencies.forEach((dependency) => {
-          const depKey = createFlowNodeKey(dependency);
           const recipe = consumerNode.recipe!;
           const demandRate = calculateDemandRate(
             recipe,
@@ -192,9 +237,8 @@ export function mapPlanToFlowSeparated(
 
           if (demandRate === null) return;
 
-          const isBreakpoint = isCircularBreakpoint(dependency, detectedCycles);
-
-          if (isBreakpoint) {
+          // Check if this dependency is a circular dependency
+          if (isCircularDependency(dependency, producedItemIds)) {
             const productionKey = findProductionKeyForItem(
               dependency.item.id,
               nodeMap,
@@ -213,26 +257,30 @@ export function mapPlanToFlowSeparated(
                   );
                 });
             }
-          } else if (dependency.isRawMaterial) {
-            edges.push(
-              createEdge(
-                `e${edgeIdCounter++}`,
-                `node-${depKey}`,
-                consumerFacility.facilityId,
-                demandRate,
-              ),
-            );
           } else {
-            poolManager.allocate(depKey, demandRate).forEach((allocation) => {
+            const depKey = createFlowNodeKey(dependency);
+
+            if (dependency.isRawMaterial) {
               edges.push(
                 createEdge(
                   `e${edgeIdCounter++}`,
-                  allocation.sourceNodeId,
+                  `node-${depKey}`,
                   consumerFacility.facilityId,
-                  allocation.allocatedAmount,
+                  demandRate,
                 ),
               );
-            });
+            } else {
+              poolManager.allocate(depKey, demandRate).forEach((allocation) => {
+                edges.push(
+                  createEdge(
+                    `e${edgeIdCounter++}`,
+                    allocation.sourceNodeId,
+                    consumerFacility.facilityId,
+                    allocation.allocatedAmount,
+                  ),
+                );
+              });
+            }
           }
         });
       });
@@ -289,8 +337,8 @@ export function mapPlanToFlowSeparated(
           data.totalRate,
           poolManager,
           nodeMap,
-          detectedCycles,
           { count: edgeIdCounter },
+          producedItemIds,
         ),
       );
       edgeIdCounter = edges.length;
@@ -312,15 +360,14 @@ function createTargetDependencyEdges(
   totalRate: number,
   poolManager: CapacityPoolManager,
   nodeMap: Map<string, AggregatedProductionNodeData>,
-  detectedCycles: DetectedCycle[],
   edgeIdCounter: { count: number },
+  producedItemIds: Set<ItemId>,
 ): Edge[] {
   const edges: Edge[] = [];
   const recipe = targetNode.recipe;
   if (!recipe) return edges;
 
   targetNode.dependencies.forEach((dep) => {
-    const depKey = createFlowNodeKey(dep);
     const demandRate = calculateDemandRate(
       recipe,
       dep.item.id,
@@ -329,9 +376,8 @@ function createTargetDependencyEdges(
     );
     if (demandRate === null) return;
 
-    const isBreakpoint = isCircularBreakpoint(dep, detectedCycles);
-
-    if (isBreakpoint) {
+    // Check if this is a circular dependency
+    if (isCircularDependency(dep, producedItemIds)) {
       const productionKey = findProductionKeyForItem(dep.item.id, nodeMap);
       if (productionKey) {
         poolManager
@@ -347,26 +393,30 @@ function createTargetDependencyEdges(
             );
           });
       }
-    } else if (dep.isRawMaterial) {
-      edges.push(
-        createEdge(
-          `e${edgeIdCounter.count++}`,
-          `node-${depKey}`,
-          targetNodeId,
-          demandRate,
-        ),
-      );
     } else {
-      poolManager.allocate(depKey, demandRate).forEach((allocation) => {
+      const depKey = createFlowNodeKey(dep);
+
+      if (dep.isRawMaterial) {
         edges.push(
           createEdge(
             `e${edgeIdCounter.count++}`,
-            allocation.sourceNodeId,
+            `node-${depKey}`,
             targetNodeId,
-            allocation.allocatedAmount,
+            demandRate,
           ),
         );
-      });
+      } else {
+        poolManager.allocate(depKey, demandRate).forEach((allocation) => {
+          edges.push(
+            createEdge(
+              `e${edgeIdCounter.count++}`,
+              allocation.sourceNodeId,
+              targetNodeId,
+              allocation.allocatedAmount,
+            ),
+          );
+        });
+      }
     }
   });
 
