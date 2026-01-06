@@ -3,7 +3,6 @@ import type { Item, Facility, Recipe } from "@/types";
 import type { ProductionNode } from "@/types";
 
 export type EdgeDirection = "forward" | "backward" | "self";
-export type EdgeKey = `${string}->${string}`;
 
 /**
  * Visualization mode for the production dependency tree.

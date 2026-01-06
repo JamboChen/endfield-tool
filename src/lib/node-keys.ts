@@ -1,4 +1,4 @@
-import type { EdgeKey, ProductionNode } from "@/types";
+import type { ProductionNode } from "@/types";
 
 /**
  * Create a canonical node key from a ProductionNode.
@@ -48,20 +48,6 @@ export function createFlowNodeId(nodeKey: string): string {
  */
 export function createFlowNodeIdFromNode(node: ProductionNode): string {
   return createFlowNodeId(createNodeKey(node));
-}
-
-/**
- * Create an edge key for direction lookup.
- * Format: sourceNodeId->targetNodeId
- *
- * @example
- * createEdgeKey("node-xxx", "node-yyy") // "node-xxx->node-yyy"
- */
-export function createEdgeKey(
-  sourceNodeId: string,
-  targetNodeId: string,
-): EdgeKey {
-  return `${sourceNodeId}->${targetNodeId}`;
 }
 
 /**
