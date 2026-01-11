@@ -1,4 +1,4 @@
-# Endfield Tool — Production Calculator for "Arknights: Endfield"
+# Endfield Calc — Production Chain Calculator for "Arknights: Endfield"
 
 [中文](./README_zh.md)
 
@@ -11,7 +11,7 @@
 
 ## Overview
 
-Endfield Tool is a comprehensive production planning and optimization calculator for **Arknights: Endfield**. It helps players design efficient production chains by calculating resource requirements, facility needs, and handling complex recipe dependencies—including circular production loops.
+**Endfield Calc** is a numeric-only production chain calculator for **Arknights: Endfield**. It helps players determine resource requirements, production ratios, and facility needs based on recipe dependencies—including circular production loops—without simulating layouts or factory placements.
 
 ## Key Features
 

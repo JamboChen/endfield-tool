@@ -15,7 +15,7 @@
     "table": "生産表",
     "tree": "依存関係ツリー"
   },
-  "title": "Endfield 工場生産計算機",
+  "title": "Endfield Calc",
   "warning": {
     "close": "警告を閉じる",
     "description": "データは未検証のため参考用です",

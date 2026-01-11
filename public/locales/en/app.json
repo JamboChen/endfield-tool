@@ -15,7 +15,7 @@
     "table": "Production Table",
     "tree": "Dependency Tree"
   },
-  "title": "Endfield Factory Production Calculator",
+  "title": "Endfield Calc",
   "warning": {
     "close": "Close warning",
     "description": "Data not verified, for reference only",
