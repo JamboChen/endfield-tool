@@ -2,7 +2,7 @@
 
 [中文](./README_zh.md)
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Try_Now-success?style=for-the-badge)](https://jamboChen.github.io/endfield-tool)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Try_Now-success?style=for-the-badge)](https://jamboChen.github.io/endfield-calc)
 [![Discord](https://img.shields.io/badge/Discord-JOIN_US-5865F2?logo=discord&logoColor=white)](https://discord.gg/6V7CupPwb6)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -67,7 +67,7 @@ Endfield Tool is a comprehensive production planning and optimization calculator
 
 ### Try Online (Recommended)
 
-Visit **[https://jamboChen.github.io/endfield-tool](https://jamboChen.github.io/endfield-tool)** to use the app directly in your browser—no installation required!
+Visit **[https://jamboChen.github.io/endfield-calc](https://jamboChen.github.io/endfield-calc)** to use the app directly in your browser—no installation required!
 
 ### Local Development
 
@@ -76,8 +76,8 @@ If you want to contribute or run it locally:
 #### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/JamboChen/endfield-tool.git
-cd endfield-tool
+git clone https://github.com/JamboChen/endfield-calc.git
+cd endfield-calc
 
 # Install dependencies
 pnpm install

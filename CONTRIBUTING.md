@@ -5,7 +5,7 @@ Thank you for your interest in contributing! This is a small community project, 
 ## Quick Start
 
 1. **Fork** the repository
-2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/endfield-tool.git`
+2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/endfield-calc.git`
 3. **Create a branch**: `git checkout -b feature/your-feature-name`
 4. **Make your changes** and test locally
 5. **Commit**: `git commit -m "Add: brief description of your changes"`
@@ -37,7 +37,7 @@ Use clear, descriptive messages:
 
 ## Reporting Issues
 
-Found a bug or have a suggestion? [Open an issue](https://github.com/JamboChen/endfield-tool/issues) with:
+Found a bug or have a suggestion? [Open an issue](https://github.com/JamboChen/endfield-calc/issues) with:
 - Clear description of the problem/suggestion
 - Steps to reproduce (for bugs)
 - Screenshots if applicable

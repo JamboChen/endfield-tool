@@ -12,7 +12,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: "/endfield-tool/",
+  base: "/endfield-calc/",
   build: {
     rollupOptions: {
       output: {

@@ -2,7 +2,7 @@
 
 [English](./README.md)
 
-[![在线体验](https://img.shields.io/badge/🚀_在线体验-立即使用-success?style=for-the-badge)](https://jamboChen.github.io/endfield-tool)
+[![在线体验](https://img.shields.io/badge/🚀_在线体验-立即使用-success?style=for-the-badge)](https://jamboChen.github.io/endfield-calc)
 [![QQ Group](https://img.shields.io/badge/QQ-1075221296-blue?logo=tencentqq)](https://qm.qq.com/q/2vdhjwYXVC)
 [![Discord](https://img.shields.io/badge/Discord-加入社区-5865F2?logo=discord&logoColor=white)](https://discord.gg/6V7CupPwb6)
 [![许可证](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -86,7 +86,7 @@ Endfield Tool 是一款面向 **《明日方舟：终末地》** 的综合性生
 ### 在线使用（推荐）
 
 直接访问  
-**https://jamboChen.github.io/endfield-tool**  
+**https://jamboChen.github.io/endfield-calc**  
 即可在浏览器中使用，无需安装。
 
 ---
@@ -98,8 +98,8 @@ Endfield Tool 是一款面向 **《明日方舟：终末地》** 的综合性生
 #### 安装步骤
 ```bash
 # 克隆仓库
-git clone https://github.com/JamboChen/endfield-tool.git
-cd endfield-tool
+git clone https://github.com/JamboChen/endfield-calc.git
+cd endfield-calc
 
 # 安装依赖
 pnpm install
