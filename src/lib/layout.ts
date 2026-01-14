@@ -24,9 +24,28 @@ interface ElkGraph {
   edges?: ElkEdge[];
 }
 
-// Cache the elk instance to avoid repeated dynamic imports and initializations
+// Cache the elk instance or the promise of its loading
 let elkInstance: { layout: (graph: ElkGraph) => Promise<ElkNode> } | null =
   null;
+let elkPromise: Promise<{
+  layout: (graph: ElkGraph) => Promise<ElkNode>;
+}> | null = null;
+
+/**
+ * Initiates the loading of ELKJS.
+ * This can be called early to preload the 1.4MB bundle in the background.
+ */
+export const preloadLayoutEngine = () => {
+  if (!elkPromise) {
+    elkPromise = import("elkjs/lib/elk.bundled.js").then(
+      (m) => new m.default(),
+    );
+  }
+  return elkPromise;
+};
+
+// Start preloading immediately when this utility module is imported
+preloadLayoutEngine();
 
 const nodeWidth = 220;
 const nodeHeight = 110;
@@ -41,10 +60,9 @@ export const getLayoutedElements = async (
   edges: Edge[],
   direction = "RIGHT",
 ) => {
-  // Dynamically load ELK only when the layout is actually requested
+  // Ensure the engine is loaded (either already cached or waiting for the preload promise)
   if (!elkInstance) {
-    const ELK = (await import("elkjs/lib/elk.bundled.js")).default;
-    elkInstance = new ELK();
+    elkInstance = await preloadLayoutEngine();
   }
 
   const isHorizontal = direction === "RIGHT" || direction === "LEFT";
