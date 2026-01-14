@@ -21,7 +21,7 @@ export default defineConfig({
             if (id.includes("react")) return "react";
             if (id.includes("lodash")) return "lodash";
             if (id.includes("@xyflow/system")) return "xyflow";
-            if (id.includes("graphlib") || id.includes("dagre")) return "graph";
+            if (id.includes("elkjs")) return "elkjs";
             if (id.includes("d3-selection") || id.includes("d3-transition"))
               return "d3";
           }

@@ -24,8 +24,9 @@ export default function CustomBackwardEdge({
   const horizontalOffset = 150; // How far right the arc initially goes before curving back
 
   // Determine if we should arc upward or downward
-  // Use a simple alternating pattern based on the edge id for variety
-  const shouldArcUp = parseInt(id.replace(/\D/g, "") || "0", 10) % 2 === 0;
+  // If source is below target (sourceY > targetY), arc downward to go around
+  // If source is above target (sourceY <= targetY), arc upward to go around
+  const shouldArcUp = sourceY <= targetY;
   const offsetMultiplier = shouldArcUp ? -1 : 1;
 
   // Create control points for the bezier curve

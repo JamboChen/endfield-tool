@@ -1,71 +1,128 @@
 import { type Node, type Edge, Position } from "@xyflow/react";
-import dagre from "dagre";
+
+interface ElkNode {
+  id: string;
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  layoutOptions?: Record<string, string>;
+  children?: ElkNode[];
+}
+
+interface ElkEdge {
+  id: string;
+  sources: string[];
+  targets: string[];
+  layoutOptions?: Record<string, string>;
+}
+
+interface ElkGraph {
+  id: string;
+  layoutOptions?: Record<string, string>;
+  children?: ElkNode[];
+  edges?: ElkEdge[];
+}
+
+// Cache the elk instance or the promise of its loading
+let elkInstance: { layout: (graph: ElkGraph) => Promise<ElkNode> } | null =
+  null;
+let elkPromise: Promise<{
+  layout: (graph: ElkGraph) => Promise<ElkNode>;
+}> | null = null;
+
+/**
+ * Initiates the loading of ELKJS.
+ * This can be called early to preload the 1.4MB bundle in the background.
+ */
+export const preloadLayoutEngine = () => {
+  if (!elkPromise) {
+    elkPromise = import("elkjs/lib/elk.bundled.js").then(
+      (m) => new m.default(),
+    );
+  }
+  return elkPromise;
+};
+
+// Start preloading immediately when this utility module is imported
+preloadLayoutEngine();
 
 const nodeWidth = 220;
 const nodeHeight = 110;
 
 /**
- * Lays out React Flow elements (nodes and edges) using the Dagre algorithm.
- * This function calculates optimal positions for nodes to create a clear
- * and organized dependency graph.
- * @param nodes An array of React Flow nodes.
- * @param edges An array of React Flow edges.
- * @param direction The layout direction, "TB" for top-bottom or "LR" for left-right.
- * @returns An object containing the layouted nodes and original edges.
+ * Lays out React Flow elements using the ELK algorithm.
+ * ELK provides better handling of hierarchy and complex cycles than Dagre.
+ * This version uses dynamic importing to only load the 1.4MB ELK bundle when needed.
  */
-export const getLayoutedElements = (
+export const getLayoutedElements = async (
   nodes: Node[],
   edges: Edge[],
-  direction = "TB",
+  direction = "RIGHT",
 ) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  // Ensure the engine is loaded (either already cached or waiting for the preload promise)
+  if (!elkInstance) {
+    elkInstance = await preloadLayoutEngine();
+  }
 
-  const isHorizontal = direction === "LR";
+  const isHorizontal = direction === "RIGHT" || direction === "LEFT";
 
-  // Configure Dagre graph settings
-  dagreGraph.setGraph({
-    rankdir: direction, // Graph direction (e.g., "LR" for left-to-right)
-    ranker: "network-simplex",
-    ranksep: 80, // Minimum separation between ranks
-    nodesep: 40, // Minimum separation between nodes in the same rank
-    marginx: 20, // Margin around the graph
-    marginy: 20, // Margin around the graph
-  });
+  const elkGraph: ElkGraph = {
+    id: "root",
+    layoutOptions: {
+      "elk.algorithm": "layered",
+      "elk.direction": direction,
+      "elk.layered.spacing.nodeNodeBetweenLayers": "150",
+      "elk.spacing.nodeNode": "100",
+      "elk.layered.crossingMinimization.forceNodeModelOrder": "true",
+      "elk.layered.priority.direction": "1",
+      "elk.edgeRouting": "SPLINES",
+      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.unnecessaryBendpoints": "true",
+      "org.eclipse.elk.padding": "[top=40,left=40,bottom=40,right=40]",
+    },
+    children: nodes.map((node) => ({
+      id: node.id,
+      width: nodeWidth,
+      height: nodeHeight,
+    })),
+    edges: edges.map((edge) => {
+      const isBackward =
+        edge.type === "backwardEdge" || edge.data?.direction === "backward";
 
-  // Set nodes in the Dagre graph with predefined width and height
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
+      return {
+        id: edge.id,
+        sources: [edge.source],
+        targets: [edge.target],
+        layoutOptions: {
+          "elk.layered.priority.direction": isBackward ? "-10" : "10",
+        },
+      };
+    }),
+  };
 
-  // Set edges in the Dagre graph
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
+  try {
+    const layoutedGraph = await elkInstance!.layout(elkGraph);
 
-  // Execute the Dagre layout algorithm
-  dagre.layout(dagreGraph);
+    const layoutedNodes = nodes.map((node) => {
+      const elkNode = layoutedGraph.children?.find((n) => n.id === node.id);
 
-  // Map Dagre's calculated positions back to React Flow nodes
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
+      if (!elkNode) return node;
 
-    if (!nodeWithPosition) {
-      return node; // Return original node if Dagre didn't process it (shouldn't happen)
-    }
+      return {
+        ...node,
+        position: {
+          x: elkNode.x ?? 0,
+          y: elkNode.y ?? 0,
+        },
+        targetPosition: isHorizontal ? Position.Left : Position.Top,
+        sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      };
+    });
 
-    return {
-      ...node,
-      position: {
-        // Adjust position to be top-left corner as required by React Flow
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
-      // Set target and source handle positions based on layout direction
-      targetPosition: isHorizontal ? Position.Left : Position.Top,
-      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
+    return { nodes: layoutedNodes, edges };
+  } catch (error) {
+    console.error("ELK layout failed:", error);
+    return { nodes, edges };
+  }
 };
