@@ -58,47 +58,54 @@ export default function ProductionDependencyTree({
 }: ProductionDependencyTreeProps) {
   const { t } = useTranslation("production");
 
-  const { initialNodes, initialEdges } = useMemo(() => {
-    if (!plan || plan.dependencyRootNodes.length === 0) {
-      return { initialNodes: [] as FlowProductionNode[], initialEdges: [] };
-    }
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowProductionNode>(
+    [],
+  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-    // Select mapper and pass plan for optimization data
-    const flowData =
-      visualizationMode === "separated"
-        ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
-        : mapPlanToFlowMerged(
+  // Perform layout and styling asynchronously when plan or visualization mode changes
+  useEffect(() => {
+    let isMounted = true;
+
+    async function computeLayout() {
+      if (!plan || plan.dependencyRootNodes.length === 0) {
+        setNodes([]);
+        setEdges([]);
+        return;
+      }
+
+      // Select mapper and pass plan for optimization data
+      const flowData =
+        visualizationMode === "separated"
+          ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
+          : mapPlanToFlowMerged(
             plan.dependencyRootNodes,
             items,
             facilities,
             plan,
           );
 
-    // Apply layout
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      flowData.nodes,
-      flowData.edges,
-      "LR",
-    );
+      // Apply layout (async)
+      const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(
+        flowData.nodes,
+        flowData.edges,
+        "RIGHT",
+      );
 
-    const styledEdges = applyEdgeStyling(layoutedEdges, layoutedNodes);
+      if (!isMounted) return;
 
-    return {
-      initialNodes: layoutedNodes as FlowProductionNode[],
-      initialEdges: styledEdges,
+      const styledEdges = applyEdgeStyling(layoutedEdges, layoutedNodes);
+
+      setNodes(layoutedNodes as FlowProductionNode[]);
+      setEdges(styledEdges);
+    }
+
+    computeLayout();
+
+    return () => {
+      isMounted = false;
     };
-  }, [plan, items, facilities, visualizationMode]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState<FlowProductionNode>(
-    [],
-  );
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-
-  // Update React Flow's internal state when initial nodes/edges change
-  useEffect(() => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [initialNodes, initialEdges, setNodes, setEdges]);
+  }, [plan, items, facilities, visualizationMode, setNodes, setEdges]);
 
   // Define custom node types for React Flow
   const nodeTypes: NodeTypes = useMemo(
