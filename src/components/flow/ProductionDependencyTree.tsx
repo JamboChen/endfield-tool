@@ -78,19 +78,9 @@ export default function ProductionDependencyTree({
       const flowData =
         visualizationMode === "separated"
           ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
-          : mapPlanToFlowMerged(
-            plan.dependencyRootNodes,
-            items,
-            facilities,
-            plan,
-          );
-
-      // Apply layout (async)
-      const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(
-        flowData.nodes,
-        flowData.edges,
-        "RIGHT",
-      );
+          : mapPlanToFlowMerged(plan.dependencyRootNodes, items, facilities);
+      const { nodes: layoutedNodes, edges: layoutedEdges } =
+        await getLayoutedElements(flowData.nodes, flowData.edges, "RIGHT");
 
       if (!isMounted) return;
 

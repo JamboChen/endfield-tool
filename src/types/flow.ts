@@ -19,7 +19,6 @@ export interface FlowNodeData {
   productionNode: ProductionNode;
   items: Item[];
   facilities: Facility[];
-  level?: number;
   [key: string]: unknown;
 }
 

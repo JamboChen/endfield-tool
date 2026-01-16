@@ -14,7 +14,6 @@ export type ProductionNode = {
   isTarget: boolean;
   dependencies: ProductionNode[];
   manualRawMaterials?: Set<ItemId>;
-  level?: number;
 
   // Cycle support fields
   isCyclePlaceholder?: boolean;
@@ -37,10 +36,6 @@ export type DetectedCycle = {
  */
 export type UnifiedProductionPlan = {
   dependencyRootNodes: ProductionNode[];
-  flatList: ProductionNode[];
-  totalPowerConsumption: number;
-  rawMaterialRequirements: Map<ItemId, number>;
-  manualRawMaterials?: Set<ItemId>;
   detectedCycles: DetectedCycle[];
   keyToLevel?: Map<string, number>;
 };

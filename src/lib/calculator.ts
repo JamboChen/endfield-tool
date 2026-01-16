@@ -9,8 +9,6 @@ import type {
   DetectedCycle,
   UnifiedProductionPlan,
 } from "@/types";
-import { topologicalSort } from "./utils";
-import { createNodeKeyFromData } from "./node-keys";
 import { solveLinearSystem } from "./linear-solver";
 
 export type RecipeSelector = (
@@ -36,17 +34,6 @@ type ProductionMaps = {
   facilityMap: Map<FacilityId, Facility>;
 };
 
-type MergedNode = {
-  item: Item;
-  totalRate: number;
-  recipe: Recipe | null;
-  facility: Facility | null;
-  totalFacilityCount: number;
-  isRawMaterial: boolean;
-  isTarget: boolean;
-  dependencies: Set<string>;
-};
-
 // Helper: get value from map or throw
 const getOrThrow = <K, V>(map: Map<K, V>, key: K, type: string): V => {
   const value = map.get(key);
@@ -57,221 +44,6 @@ const getOrThrow = <K, V>(map: Map<K, V>, key: K, type: string): V => {
 // Helper: calculate production rate per facility
 const calcRate = (amount: number, craftingTime: number): number =>
   (amount * 60) / craftingTime;
-
-// Use unified createNodeKeyFromData from node-keys.ts
-const createNodeKey = (
-  itemId: ItemId,
-  recipeId: RecipeId | null,
-  isRaw: boolean,
-): string => createNodeKeyFromData(itemId, recipeId, isRaw);
-
-// Helper: generic tree traversal
-const traverseTree = (
-  nodes: ProductionNode[],
-  visitor: (node: ProductionNode) => void,
-  skipPlaceholders = true,
-) => {
-  const visit = (node: ProductionNode) => {
-    if (skipPlaceholders && node.isCyclePlaceholder) return;
-    visitor(node);
-    node.dependencies.forEach(visit);
-  };
-  nodes.forEach(visit);
-};
-
-/** Collects all produced (non-raw) item IDs */
-function collectProducedItems(nodes: ProductionNode[]): Set<ItemId> {
-  const produced = new Set<ItemId>();
-  traverseTree(nodes, (node) => {
-    if (!node.isRawMaterial && node.recipe) {
-      produced.add(node.item.id);
-    }
-  });
-  return produced;
-}
-
-/** Checks if node is a circular dependency */
-const isCircularDep = (node: ProductionNode, produced: Set<ItemId>): boolean =>
-  !node.isCyclePlaceholder && node.isRawMaterial && produced.has(node.item.id);
-
-/** Merges duplicate production nodes */
-function mergeProductionNodes(
-  rootNodes: ProductionNode[],
-  producedItemIds: Set<ItemId>,
-): Map<string, MergedNode> {
-  const merged = new Map<string, MergedNode>();
-
-  traverseTree(rootNodes, (node) => {
-    // Inline isCircularDep check
-    if (
-      !node.isCyclePlaceholder &&
-      node.isRawMaterial &&
-      producedItemIds.has(node.item.id)
-    ) {
-      return;
-    }
-
-    const key = createNodeKey(
-      node.item.id,
-      node.recipe?.id || null,
-      node.isRawMaterial,
-    );
-    const existing = merged.get(key);
-
-    if (existing) {
-      existing.totalRate += node.targetRate;
-      existing.totalFacilityCount += node.facilityCount;
-      if (node.isTarget) existing.isTarget = true;
-
-      node.dependencies.forEach((dep) => {
-        if (!isCircularDep(dep, producedItemIds)) {
-          existing.dependencies.add(
-            createNodeKey(
-              dep.item.id,
-              dep.recipe?.id || null,
-              dep.isRawMaterial,
-            ),
-          );
-        }
-      });
-    } else {
-      const dependencies = new Set<string>();
-      node.dependencies.forEach((dep) => {
-        if (!isCircularDep(dep, producedItemIds)) {
-          dependencies.add(
-            createNodeKey(
-              dep.item.id,
-              dep.recipe?.id || null,
-              dep.isRawMaterial,
-            ),
-          );
-        }
-      });
-
-      merged.set(key, {
-        item: node.item,
-        totalRate: node.targetRate,
-        recipe: node.recipe,
-        facility: node.facility,
-        totalFacilityCount: node.facilityCount,
-        isRawMaterial: node.isRawMaterial,
-        isTarget: node.isTarget,
-        dependencies,
-      });
-    }
-  });
-
-  return merged;
-}
-
-/** Calculates depth levels for nodes */
-function calculateNodeLevels(
-  sortedKeys: string[],
-  merged: Map<string, MergedNode>,
-): Map<string, number> {
-  const levels = new Map<string, number>();
-
-  const calcLevel = (key: string): number => {
-    if (levels.has(key)) return levels.get(key)!;
-
-    const node = merged.get(key);
-    if (!node || node.dependencies.size === 0) {
-      levels.set(key, 0);
-      return 0;
-    }
-
-    let maxDepLevel = -1;
-    node.dependencies.forEach((depKey) => {
-      if (merged.has(depKey)) {
-        maxDepLevel = Math.max(maxDepLevel, calcLevel(depKey));
-      }
-    });
-
-    const level = maxDepLevel + 1;
-    levels.set(key, level);
-    return level;
-  };
-
-  sortedKeys.forEach(calcLevel);
-  return levels;
-}
-
-/** Sorts by level (deepest first) then tier (highest first) */
-function sortByLevelAndTier(
-  sortedKeys: string[],
-  merged: Map<string, MergedNode>,
-): string[] {
-  const keyToLevel = calculateNodeLevels(sortedKeys, merged);
-  const levels = new Map<number, string[]>();
-
-  sortedKeys.forEach((key) => {
-    const level = keyToLevel.get(key)!;
-    if (!levels.has(level)) levels.set(level, []);
-    levels.get(level)!.push(key);
-  });
-
-  const result: string[] = [];
-  Array.from(levels.keys())
-    .sort((a, b) => b - a)
-    .forEach((level) => {
-      const keysInLevel = levels.get(level)!;
-      keysInLevel.sort(
-        (a, b) => merged.get(b)!.item.tier - merged.get(a)!.item.tier,
-      );
-      result.push(...keysInLevel);
-    });
-
-  return result;
-}
-
-/** Builds final plan components */
-function buildFinalPlanComponents(
-  sortedKeys: string[],
-  merged: Map<string, MergedNode>,
-): {
-  flatList: ProductionNode[];
-  totalPowerConsumption: number;
-  rawMaterialRequirements: Map<ItemId, number>;
-  keyToLevel: Map<string, number>;
-} {
-  const rawMaterials = new Map<ItemId, number>();
-  let totalPower = 0;
-  const flatList: ProductionNode[] = [];
-  const keyToLevel = calculateNodeLevels(sortedKeys, merged);
-
-  sortedKeys.forEach((key) => {
-    const node = merged.get(key)!;
-    const level = keyToLevel.get(key) || 0;
-
-    if (node.isRawMaterial) {
-      rawMaterials.set(
-        node.item.id,
-        (rawMaterials.get(node.item.id) || 0) + node.totalRate,
-      );
-    } else if (node.facility) {
-      totalPower += node.facility.powerConsumption * node.totalFacilityCount;
-    }
-
-    flatList.push({
-      item: node.item,
-      targetRate: node.totalRate,
-      recipe: node.recipe,
-      facility: node.facility,
-      facilityCount: node.totalFacilityCount,
-      isRawMaterial: node.isRawMaterial,
-      isTarget: node.isTarget,
-      dependencies: [],
-      level,
-    });
-  });
-
-  return {
-    flatList,
-    totalPowerConsumption: totalPower,
-    rawMaterialRequirements: rawMaterials,
-    keyToLevel,
-  };
-}
 
 /** Reconstructs a cycle for visualization */
 function reconstructCycle(
@@ -674,28 +446,6 @@ function buildDependencyTree(
   return { rootNodes, detectedCycles };
 }
 
-/** Processes raw dependency trees into merged plan */
-function processMergedPlan(rootNodes: ProductionNode[]): {
-  flatList: ProductionNode[];
-  totalPowerConsumption: number;
-  rawMaterialRequirements: Map<ItemId, number>;
-  keyToLevel: Map<string, number>;
-  detectedCycles: DetectedCycle[];
-} {
-  const producedItemIds = collectProducedItems(rootNodes);
-  const mergedNodes = mergeProductionNodes(rootNodes, producedItemIds);
-  const sortedKeys = topologicalSort(
-    mergedNodes,
-    (node) => node.dependencies,
-  ).reverse();
-  const sortedByLevelAndTier = sortByLevelAndTier(sortedKeys, mergedNodes);
-
-  return {
-    ...buildFinalPlanComponents(sortedByLevelAndTier, mergedNodes),
-    detectedCycles: [],
-  };
-}
-
 /**
  * Calculates a complete production plan for multiple target items at specified rates.
  */
@@ -716,7 +466,7 @@ export function calculateProductionPlan(
     facilityMap: new Map(facilities.map((f) => [f.id, f])),
   };
 
-  // Step 1: Build dependency tree and detect cycles
+  // Only build dependency tree and detect cycles
   const { rootNodes: dependencyRootNodes, detectedCycles } =
     buildDependencyTree(
       targets,
@@ -726,20 +476,8 @@ export function calculateProductionPlan(
       manualRawMaterials,
     );
 
-  // Step 2: Process merged plan
-  const {
-    flatList,
-    totalPowerConsumption,
-    rawMaterialRequirements,
-    keyToLevel,
-  } = processMergedPlan(dependencyRootNodes);
-
   return {
     dependencyRootNodes,
-    flatList,
-    totalPowerConsumption,
-    rawMaterialRequirements,
     detectedCycles,
-    keyToLevel,
   };
 }

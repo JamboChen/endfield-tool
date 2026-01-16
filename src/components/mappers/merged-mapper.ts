@@ -7,7 +7,6 @@ import type {
   FlowNodeData,
   FlowProductionNode,
   FlowTargetNode,
-  UnifiedProductionPlan,
 } from "@/types";
 import {
   createFlowNodeKey,
@@ -38,7 +37,6 @@ export function mapPlanToFlowMerged(
   rootNodes: ProductionNode[],
   items: Item[],
   facilities: Facility[],
-  plan: UnifiedProductionPlan,
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
   const nodes: Node<FlowNodeData>[] = [];
   const edges: Edge[] = [];
@@ -60,11 +58,6 @@ export function mapPlanToFlowMerged(
     }
 
     return createFlowNodeIdFromNode(node);
-  };
-
-  const getNodeLevel = (node: ProductionNode, key: string): number => {
-    if (node.level !== undefined) return node.level;
-    return plan.keyToLevel?.get(key) ?? 0;
   };
 
   const traverse = (
@@ -118,7 +111,6 @@ export function mapPlanToFlowMerged(
           directTargetRate: isDirectTarget
             ? aggregatedData.totalRate
             : undefined,
-          level: getNodeLevel(aggregatedData.node, key),
         },
         position: { x: 0, y: 0 },
         sourcePosition: Position.Right,

@@ -18,6 +18,7 @@ export default function App() {
     activeTab,
     plan,
     tableData,
+    stats,
     error,
     handleTargetChange,
     handleTargetRemove,
@@ -42,9 +43,9 @@ export default function App() {
           <LeftPanel
             targets={targets}
             items={items}
-            totalPowerConsumption={plan?.totalPowerConsumption ?? 0}
-            productionSteps={tableData.length}
-            rawMaterialCount={plan?.rawMaterialRequirements.size ?? 0}
+            totalPowerConsumption={stats.totalPowerConsumption}
+            productionSteps={stats.productionSteps}
+            rawMaterialCount={stats.rawMaterialRequirements.size}
             error={error}
             onTargetChange={handleTargetChange}
             onTargetRemove={handleTargetRemove}

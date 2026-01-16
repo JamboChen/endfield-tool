@@ -5,15 +5,10 @@ import {
 import { items, recipes, facilities } from "@/data";
 import { useState, useMemo, useCallback } from "react";
 import type { ProductionTarget } from "@/components/panels/TargetItemsGrid";
-import type {
-  ItemId,
-  ProductionNode,
-  RecipeId,
-  UnifiedProductionPlan,
-} from "@/types";
-import type { ProductionLineData } from "@/components/production/ProductionTable";
+import type { ItemId, RecipeId } from "@/types";
 import { useTranslation } from "react-i18next";
-import { createFlowNodeKey } from "@/components/flow/flow-utils";
+import { useProductionStats } from "./useProductionStats";
+import { useProductionTable } from "./useProductionTable";
 
 export function useProductionPlan() {
   const { t } = useTranslation("app");
@@ -28,9 +23,9 @@ export function useProductionPlan() {
     new Set(),
   );
 
-  const { plan, tableData, error } = useMemo(() => {
-    let plan: UnifiedProductionPlan | null = null;
-    let tableData: ProductionLineData[] = [];
+  // Core calculation: only returns dependency tree and cycles
+  const { plan, error } = useMemo(() => {
+    let plan = null;
     let error: string | null = null;
 
     try {
@@ -44,51 +39,22 @@ export function useProductionPlan() {
           smartRecipeSelector,
           manualRawMaterials,
         );
-
-        // Use weighted levels for sorting
-        tableData = plan.flatList
-          .map((node) => {
-            const availableRecipes = recipes.filter((recipe) =>
-              recipe.outputs.some((output) => output.itemId === node.item.id),
-            );
-
-            return {
-              item: node.item,
-              outputRate: node.targetRate,
-              availableRecipes: availableRecipes,
-              selectedRecipeId: (node.recipe?.id ?? "") as RecipeId | "",
-              facility: node.facility ?? null,
-              facilityCount: node.facilityCount ?? 0,
-              isRawMaterial: node.isRawMaterial,
-              isTarget: node.isTarget,
-              isManualRawMaterial: manualRawMaterials.has(node.item.id),
-            };
-          })
-          .sort((a, b) => {
-            // Sort by weighted level (deepest first)
-            const keyA = createFlowNodeKey({
-              item: a.item,
-              recipe: recipes.find((r) => r.id === a.selectedRecipeId) ?? null,
-              isRawMaterial: a.isRawMaterial,
-            } as ProductionNode);
-            const keyB = createFlowNodeKey({
-              item: b.item,
-              recipe: recipes.find((r) => r.id === b.selectedRecipeId) ?? null,
-              isRawMaterial: b.isRawMaterial,
-            } as ProductionNode);
-
-            const levelA = plan!.keyToLevel?.get(keyA) ?? 0;
-            const levelB = plan!.keyToLevel?.get(keyB) ?? 0;
-
-            return levelB - levelA; // Descending order
-          });
       }
     } catch (e) {
       error = e instanceof Error ? e.message : t("calculationError");
     }
 
-    return { plan, tableData, error };
+    return { plan, error };
   }, [targets, recipeOverrides, manualRawMaterials, t]);
+
+  // View-specific data: computed in view layer hooks
+  const stats = useProductionStats(plan, manualRawMaterials);
+  const tableData = useProductionTable(
+    plan,
+    recipes,
+    recipeOverrides,
+    manualRawMaterials,
+  );
 
   const handleTargetChange = useCallback((index: number, rate: number) => {
     setTargets((prev) => {
@@ -144,6 +110,7 @@ export function useProductionPlan() {
     setActiveTab,
     plan,
     tableData,
+    stats,
     error,
     handleTargetChange,
     handleTargetRemove,
