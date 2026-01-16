@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type {
-  UnifiedProductionPlan,
+  ProductionDependencyGraph,
   ProductionNode,
   ItemId,
   RecipeId,
@@ -183,7 +183,7 @@ function sortNodes(merged: Map<string, MergedNode>): MergedNode[] {
  * Handles merging, sorting, and formatting for the table view.
  */
 export function useProductionTable(
-  plan: UnifiedProductionPlan | null,
+  plan: ProductionDependencyGraph | null,
   recipes: Recipe[],
   recipeOverrides: Map<ItemId, RecipeId>,
   manualRawMaterials: Set<ItemId>,

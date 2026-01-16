@@ -44,7 +44,7 @@ export default function App() {
             targets={targets}
             items={items}
             totalPowerConsumption={stats.totalPowerConsumption}
-            productionSteps={stats.productionSteps}
+            productionSteps={stats.uniqueProductionSteps}
             rawMaterialCount={stats.rawMaterialRequirements.size}
             error={error}
             onTargetChange={handleTargetChange}

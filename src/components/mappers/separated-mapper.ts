@@ -17,7 +17,7 @@ import {
   shouldSkipNode,
   createEdge,
 } from "../flow/flow-utils";
-import { createFlowNodeId } from "@/lib/node-keys";
+import { createFlowNodeId, createTargetSinkId } from "@/lib/node-keys";
 import { calculateDemandRate, topologicalSort } from "@/lib/utils";
 
 /**
@@ -283,7 +283,7 @@ export function mapPlanToFlowSeparated(
   );
 
   targetNodes.forEach(([productionKey, data]) => {
-    const targetNodeId = `target-sink-${data.node.item.id}`;
+    const targetNodeId = createTargetSinkId(data.node.item.id);
     const hasDownstream = targetsWithDownstream.has(productionKey);
 
     targetSinkNodes.push({

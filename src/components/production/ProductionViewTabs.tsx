@@ -10,13 +10,13 @@ import type {
   RecipeId,
   Item,
   Facility,
-  UnifiedProductionPlan,
+  ProductionDependencyGraph,
   VisualizationMode,
 } from "@/types";
 import type { ProductionLineData } from "./ProductionTable";
 
 interface ProductionViewTabsProps {
-  plan: UnifiedProductionPlan | null;
+  plan: ProductionDependencyGraph | null;
   tableData: ProductionLineData[];
   items: Item[];
   facilities: Facility[];

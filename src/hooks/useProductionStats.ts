@@ -1,10 +1,15 @@
 import { useMemo } from "react";
-import type { UnifiedProductionPlan, ItemId, ProductionNode } from "@/types";
+import type {
+  ProductionDependencyGraph,
+  ItemId,
+  ProductionNode,
+} from "@/types";
+import { createNodeKey } from "@/lib/node-keys";
 
 export type ProductionStats = {
   totalPowerConsumption: number;
   rawMaterialRequirements: Map<ItemId, number>;
-  productionSteps: number;
+  uniqueProductionSteps: number;
 };
 
 /**
@@ -17,11 +22,6 @@ function collectStats(
   let totalPower = 0;
   const rawMaterials = new Map<ItemId, number>();
   const processedNodes = new Set<string>();
-
-  // Helper to create a unique key for deduplication
-  const createNodeKey = (node: ProductionNode): string => {
-    return `${node.item.id}-${node.recipe?.id || "raw"}-${node.isRawMaterial}`;
-  };
 
   const traverse = (node: ProductionNode) => {
     // Skip cycle placeholders
@@ -57,7 +57,7 @@ function collectStats(
   return {
     totalPowerConsumption: totalPower,
     rawMaterialRequirements: rawMaterials,
-    productionSteps: processedNodes.size,
+    uniqueProductionSteps: processedNodes.size,
   };
 }
 
@@ -66,7 +66,7 @@ function collectStats(
  * Handles all statistical aggregations needed for the summary panel.
  */
 export function useProductionStats(
-  plan: UnifiedProductionPlan | null,
+  plan: ProductionDependencyGraph | null,
   manualRawMaterials: Set<ItemId>,
 ): ProductionStats {
   return useMemo(() => {
@@ -74,7 +74,7 @@ export function useProductionStats(
       return {
         totalPowerConsumption: 0,
         rawMaterialRequirements: new Map(),
-        productionSteps: 0,
+        uniqueProductionSteps: 0,
       };
     }
 

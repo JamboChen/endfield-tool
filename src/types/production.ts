@@ -32,9 +32,9 @@ export type DetectedCycle = {
 };
 
 /**
- * The unified output structure for the production plan.
+ * Core production dependency graph with cycle detection.
  */
-export type UnifiedProductionPlan = {
+export type ProductionDependencyGraph = {
   dependencyRootNodes: ProductionNode[];
   detectedCycles: DetectedCycle[];
   keyToLevel?: Map<string, number>;

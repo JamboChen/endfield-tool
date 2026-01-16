@@ -15,7 +15,7 @@ import type {
   Facility,
   FlowProductionNode,
   VisualizationMode,
-  UnifiedProductionPlan,
+  ProductionDependencyGraph,
 } from "@/types";
 import CustomProductionNode from "../nodes/CustomProductionNode";
 import CustomTargetNode from "../nodes/CustomTargetNode";
@@ -30,7 +30,7 @@ import CustomBackwardEdge from "../nodes/CustomBackwardEdge";
  * Props for the ProductionDependencyTree component.
  */
 type ProductionDependencyTreeProps = {
-  plan: UnifiedProductionPlan | null;
+  plan: ProductionDependencyGraph | null;
   items: Item[];
   facilities: Facility[];
   /** Visualization mode: 'merged' shows aggregated facilities, 'separated' shows individual facilities */

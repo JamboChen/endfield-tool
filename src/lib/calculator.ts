@@ -7,7 +7,7 @@ import type {
   FacilityId,
   ProductionNode,
   DetectedCycle,
-  UnifiedProductionPlan,
+  ProductionDependencyGraph,
 } from "@/types";
 import { solveLinearSystem } from "./linear-solver";
 
@@ -457,7 +457,7 @@ export function calculateProductionPlan(
   recipeOverrides?: Map<ItemId, RecipeId>,
   recipeSelector: RecipeSelector = defaultRecipeSelector,
   manualRawMaterials?: Set<ItemId>,
-): UnifiedProductionPlan {
+): ProductionDependencyGraph {
   if (targets.length === 0) throw new Error("No targets specified");
 
   const maps: ProductionMaps = {
