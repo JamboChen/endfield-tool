@@ -193,30 +193,28 @@ export function useProductionTable(
       return [];
     }
 
-    // Step 1: Collect produced items
     const producedItemIds = collectProducedItems(plan.dependencyRootNodes);
-
-    // Step 2: Merge duplicate nodes
     const mergedNodes = mergeNodes(plan.dependencyRootNodes, producedItemIds);
-
-    // Step 3: Calculate levels
     calculateLevels(mergedNodes);
-
-    // Step 4: Sort by level and tier
     const sortedNodes = sortNodes(mergedNodes);
 
-    // Step 5: Convert to table data format
     return sortedNodes.map((node) => {
       const availableRecipes = recipes.filter((recipe) =>
         recipe.outputs.some((output) => output.itemId === node.item.id),
       );
 
-      // Determine selected recipe
       let selectedRecipeId: RecipeId | "" = "";
       if (recipeOverrides.has(node.item.id)) {
         selectedRecipeId = recipeOverrides.get(node.item.id)!;
       } else if (node.recipe) {
         selectedRecipeId = node.recipe.id;
+      }
+
+      const directDependencyItemIds = new Set<ItemId>();
+      if (node.recipe) {
+        node.recipe.inputs.forEach((input) => {
+          directDependencyItemIds.add(input.itemId);
+        });
       }
 
       return {
@@ -229,6 +227,7 @@ export function useProductionTable(
         isRawMaterial: node.isRawMaterial,
         isTarget: node.isTarget,
         isManualRawMaterial: manualRawMaterials.has(node.item.id),
+        directDependencyItemIds,
       };
     });
   }, [plan, recipes, recipeOverrides, manualRawMaterials]);
