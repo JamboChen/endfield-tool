@@ -13,9 +13,11 @@ import type {
  */
 export class CapacityPoolManager {
   private pools: Map<string, CapacityPoolEntry>;
+  private processedFacilities: Set<string>;
 
   constructor() {
     this.pools = new Map();
+    this.processedFacilities = new Set();
   }
 
   /**
@@ -100,5 +102,19 @@ export class CapacityPoolManager {
    */
   getFacilityInstances(nodeKey: string): FacilityInstance[] {
     return this.pools.get(nodeKey)?.facilities ?? [];
+  }
+
+  /**
+   * Marks a facility as processed (dependencies have been recursively allocated).
+   */
+  markProcessed(facilityId: string): void {
+    this.processedFacilities.add(facilityId);
+  }
+
+  /**
+   * Checks if a facility has been processed.
+   */
+  isProcessed(facilityId: string): boolean {
+    return this.processedFacilities.has(facilityId);
   }
 }

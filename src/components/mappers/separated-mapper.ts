@@ -14,7 +14,6 @@ import {
   aggregateProductionNodes,
   type AggregatedProductionNodeData,
   findTargetsWithDownstream,
-  shouldSkipNode,
   createEdge,
 } from "../flow/flow-utils";
 import { createFlowNodeId, createTargetSinkId } from "@/lib/node-keys";
@@ -57,335 +56,6 @@ function isCircularDependency(
   }
 
   return false;
-}
-
-/**
- * Maps a UnifiedProductionPlan to React Flow nodes and edges in separated mode.
- *
- * In separated mode, each physical facility is represented as an individual node.
- * This provides a detailed view suitable for planning physical layouts and
- * understanding resource distribution.
- *
- * The algorithm:
- * 1. Collects and deduplicates production nodes
- * 2. Creates capacity pools for each unique production step
- * 3. Generates individual facility nodes
- * 4. Allocates capacity and creates edges using demand-driven allocation
- * 5. Creates target sink nodes for user-defined goals
- *
- * @param rootNodes The root ProductionNodes of the dependency tree
- * @param items All available items in the game
- * @param facilities All available facilities in the game
- * @param originalTargets Original user-defined production targets (optional)
- * @returns An object containing the generated React Flow nodes and edges
- */
-export function mapPlanToFlowSeparated(
-  rootNodes: ProductionNode[],
-  items: Item[],
-  facilities: Facility[],
-): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
-  const nodeMap = aggregateProductionNodes(rootNodes);
-  const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
-  const producedItemIds = collectProducedItems(nodeMap);
-
-  // Initialize capacity pools
-  const poolManager = new CapacityPoolManager();
-  nodeMap.forEach((aggregatedData, key) => {
-    const node = aggregatedData.node;
-
-    if (shouldSkipNode(node, key, targetsWithDownstream)) return;
-    if (isCircularDependency(node, producedItemIds)) return;
-
-    if (!node.isRawMaterial && !node.recipe) {
-      console.warn(`Skipping invalid production node without recipe: ${key}`);
-      return;
-    }
-
-    poolManager.createPool(
-      {
-        ...node,
-        targetRate: aggregatedData.totalRate,
-        facilityCount: aggregatedData.totalFacilityCount,
-      },
-      key,
-    );
-  });
-
-  // Generate production nodes
-  const flowNodes: FlowProductionNode[] = [];
-  nodeMap.forEach((aggregatedData, key) => {
-    const node = aggregatedData.node;
-
-    if (shouldSkipNode(node, key, targetsWithDownstream)) return;
-    if (isCircularDependency(node, producedItemIds)) return;
-
-    if (!node.isRawMaterial && !node.recipe) {
-      console.warn(`Skipping invalid production node without recipe: ${key}`);
-      return;
-    }
-    const isDirectTarget = node.isTarget && targetsWithDownstream.has(key);
-    const directTargetRate = isDirectTarget
-      ? aggregatedData.totalRate
-      : undefined;
-
-    if (node.isRawMaterial) {
-      flowNodes.push(
-        createProductionFlowNode(
-          createFlowNodeId(key),
-          {
-            ...node,
-            targetRate: aggregatedData.totalRate,
-            facilityCount: aggregatedData.totalFacilityCount,
-          },
-          items,
-          facilities,
-          undefined,
-          undefined,
-          undefined,
-          isDirectTarget,
-          directTargetRate,
-        ),
-      );
-    } else {
-      poolManager.getFacilityInstances(key).forEach((facility) => {
-        flowNodes.push(
-          createProductionFlowNode(
-            facility.facilityId,
-            {
-              ...node,
-              targetRate: facility.actualOutputRate,
-              facilityCount: 1,
-            },
-            items,
-            facilities,
-            facility.facilityIndex,
-            poolManager.getFacilityInstances(key).length,
-            facility.actualOutputRate < facility.maxOutputRate * 0.999,
-            isDirectTarget,
-            directTargetRate,
-          ),
-        );
-      });
-    }
-  });
-
-  // Generate edges
-  const edges: Edge[] = [];
-  let edgeIdCounter = 0;
-
-  nodeMap.forEach((consumerData, consumerKey) => {
-    const consumerNode = consumerData.node;
-
-    if (shouldSkipNode(consumerNode, consumerKey, targetsWithDownstream))
-      return;
-    if (isCircularDependency(consumerNode, producedItemIds)) return;
-
-    if (!consumerNode.recipe) {
-      console.warn(`Skipping node without recipe: ${consumerKey}`);
-      return;
-    }
-
-    poolManager
-      .getFacilityInstances(consumerKey)
-      .forEach((consumerFacility) => {
-        consumerNode.dependencies.forEach((dependency) => {
-          const recipe = consumerNode.recipe!;
-          const demandRate = calculateDemandRate(
-            recipe,
-            dependency.item.id,
-            consumerNode.item.id,
-            consumerFacility.actualOutputRate,
-          );
-
-          if (demandRate === null) return;
-
-          // Check if this is a circular dependency
-          if (isCircularDependency(dependency, producedItemIds)) {
-            const productionKey = findProductionKeyForItem(
-              dependency.item.id,
-              nodeMap,
-            );
-            if (productionKey) {
-              poolManager
-                .allocate(productionKey, demandRate)
-                .forEach((allocation) => {
-                  edges.push(
-                    createEdge(
-                      `e${edgeIdCounter++}`,
-                      allocation.sourceNodeId,
-                      consumerFacility.facilityId,
-                      allocation.allocatedAmount,
-                      "backward",
-                    ),
-                  );
-                });
-            }
-          } else {
-            const depKey = createFlowNodeKey(dependency);
-
-            if (dependency.isRawMaterial) {
-              const sourceNodeId = createFlowNodeId(depKey);
-              edges.push(
-                createEdge(
-                  `e${edgeIdCounter++}`,
-                  sourceNodeId,
-                  consumerFacility.facilityId,
-                  demandRate,
-                ),
-              );
-            } else {
-              poolManager.allocate(depKey, demandRate).forEach((allocation) => {
-                edges.push(
-                  createEdge(
-                    `e${edgeIdCounter++}`,
-                    allocation.sourceNodeId,
-                    consumerFacility.facilityId,
-                    allocation.allocatedAmount,
-                  ),
-                );
-              });
-            }
-          }
-        });
-      });
-  });
-
-  // Create target sink nodes
-  const targetSinkNodes: FlowTargetNode[] = [];
-  const targetNodes = Array.from(nodeMap.entries()).filter(
-    ([, data]) => data.node.isTarget && !data.node.isRawMaterial,
-  );
-
-  targetNodes.forEach(([productionKey, data]) => {
-    const targetNodeId = createTargetSinkId(data.node.item.id);
-    const hasDownstream = targetsWithDownstream.has(productionKey);
-
-    targetSinkNodes.push({
-      id: targetNodeId,
-      type: "targetSink",
-      data: {
-        item: data.node.item,
-        targetRate: data.totalRate,
-        items,
-        facilities,
-        productionInfo: !hasDownstream
-          ? {
-              facility: data.node.facility,
-              facilityCount: data.totalFacilityCount,
-              recipe: data.node.recipe,
-            }
-          : undefined,
-      },
-      position: { x: 0, y: 0 },
-      targetPosition: Position.Left,
-    });
-
-    if (hasDownstream) {
-      poolManager
-        .allocate(productionKey, data.totalRate)
-        .forEach((allocation) => {
-          edges.push(
-            createEdge(
-              `e${edgeIdCounter++}`,
-              allocation.sourceNodeId,
-              targetNodeId,
-              allocation.allocatedAmount,
-            ),
-          );
-        });
-    } else {
-      edges.push(
-        ...createTargetDependencyEdges(
-          data.node,
-          targetNodeId,
-          data.totalRate,
-          poolManager,
-          nodeMap,
-          { count: edgeIdCounter },
-          producedItemIds,
-        ),
-      );
-      edgeIdCounter = edges.length;
-    }
-  });
-
-  return {
-    nodes: [...flowNodes, ...targetSinkNodes],
-    edges: edges,
-  };
-}
-
-/**
- * Helper: Creates target dependency edges with cycle awareness
- */
-function createTargetDependencyEdges(
-  targetNode: ProductionNode,
-  targetNodeId: string,
-  totalRate: number,
-  poolManager: CapacityPoolManager,
-  nodeMap: Map<string, AggregatedProductionNodeData>,
-  edgeIdCounter: { count: number },
-  producedItemIds: Set<ItemId>,
-): Edge[] {
-  const edges: Edge[] = [];
-  const recipe = targetNode.recipe;
-  if (!recipe) return edges;
-
-  targetNode.dependencies.forEach((dep) => {
-    const demandRate = calculateDemandRate(
-      recipe,
-      dep.item.id,
-      targetNode.item.id,
-      totalRate,
-    );
-    if (demandRate === null) return;
-
-    // Check if this is a circular dependency
-    if (isCircularDependency(dep, producedItemIds)) {
-      const productionKey = findProductionKeyForItem(dep.item.id, nodeMap);
-      if (productionKey) {
-        poolManager
-          .allocate(productionKey, demandRate)
-          .forEach((allocation) => {
-            edges.push(
-              createEdge(
-                `e${edgeIdCounter.count++}`,
-                allocation.sourceNodeId,
-                targetNodeId,
-                allocation.allocatedAmount,
-                "backward",
-              ),
-            );
-          });
-      }
-    } else {
-      const depKey = createFlowNodeKey(dep);
-
-      if (dep.isRawMaterial) {
-        edges.push(
-          createEdge(
-            `e${edgeIdCounter.count++}`,
-            createFlowNodeId(depKey),
-            targetNodeId,
-            demandRate,
-          ),
-        );
-      } else {
-        poolManager.allocate(depKey, demandRate).forEach((allocation) => {
-          edges.push(
-            createEdge(
-              `e${edgeIdCounter.count++}`,
-              allocation.sourceNodeId,
-              targetNodeId,
-              allocation.allocatedAmount,
-            ),
-          );
-        });
-      }
-    }
-  });
-
-  return edges;
 }
 
 /**
@@ -437,5 +107,363 @@ function createProductionFlowNode(
     position: { x: 0, y: 0 },
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
+  };
+}
+
+/**
+ * Maps a UnifiedProductionPlan to React Flow nodes and edges in separated mode.
+ *
+ * In separated mode, each physical facility is represented as an individual node.
+ * This provides a detailed view suitable for planning physical layouts and
+ * understanding resource distribution.
+ *
+ * @param rootNodes The root ProductionNodes of the dependency tree
+ * @param items All available items in the game
+ * @param facilities All available facilities in the game
+ * @returns An object containing the generated React Flow nodes and edges
+ */
+export function mapPlanToFlowSeparated(
+  rootNodes: ProductionNode[],
+  items: Item[],
+  facilities: Facility[],
+): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
+  const nodeMap = aggregateProductionNodes(rootNodes);
+  const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
+  const producedItemIds = collectProducedItems(nodeMap);
+
+  const poolManager = new CapacityPoolManager();
+  const rawMaterialNodes = new Map<ItemId, string>();
+  const flowNodes: FlowProductionNode[] = [];
+  const targetSinkNodes: FlowTargetNode[] = [];
+  const edges: Edge[] = [];
+  const edgeIdCounter = { count: 0 };
+
+  /**
+   * Recursively allocates upstream facilities to satisfy demand.
+   * Creates edges immediately upon allocation.
+   */
+  function allocateUpstream(
+    node: ProductionNode,
+    demandRate: number,
+    consumerFacilityId: string,
+  ): void {
+    if (isCircularDependency(node, producedItemIds)) {
+      const productionKey = findProductionKeyForItem(node.item.id, nodeMap);
+      if (productionKey) {
+        allocateFromPool(
+          productionKey,
+          nodeMap.get(productionKey)!.node,
+          demandRate,
+          consumerFacilityId,
+          "backward",
+        );
+      }
+      return;
+    }
+
+    // Handle circular dependency
+    if (isCircularDependency(node, producedItemIds)) {
+      const productionKey = findProductionKeyForItem(node.item.id, nodeMap);
+      if (productionKey) {
+        allocateFromPool(
+          productionKey,
+          node,
+          demandRate,
+          consumerFacilityId,
+          "backward",
+        );
+      }
+      return;
+    }
+
+    // Handle raw materials (globally shared)
+    if (node.isRawMaterial) {
+      const nodeKey = createFlowNodeKey(node);
+      let rawNodeId = rawMaterialNodes.get(node.item.id);
+
+      if (!rawNodeId) {
+        rawNodeId = createFlowNodeId(nodeKey);
+        rawMaterialNodes.set(node.item.id, rawNodeId);
+
+        // Create raw material node
+        flowNodes.push(
+          createProductionFlowNode(
+            rawNodeId,
+            {
+              ...node,
+              targetRate: 0, // Will be updated if needed
+              facilityCount: 0,
+            },
+            items,
+            facilities,
+            undefined,
+            undefined,
+            undefined,
+            false,
+            undefined,
+          ),
+        );
+      }
+
+      // Create edge from raw material to consumer
+      edges.push(
+        createEdge(
+          `e${edgeIdCounter.count++}`,
+          rawNodeId,
+          consumerFacilityId,
+          demandRate,
+        ),
+      );
+      return;
+    }
+
+    // Handle production nodes
+    const nodeKey = createFlowNodeKey(node);
+    allocateFromPool(nodeKey, node, demandRate, consumerFacilityId);
+  }
+
+  /**
+   * Allocates capacity from a pool and recursively processes newly allocated facilities.
+   */
+  function allocateFromPool(
+    nodeKey: string,
+    node: ProductionNode,
+    demandRate: number,
+    consumerFacilityId: string,
+    edgeDirection?: "backward",
+  ): void {
+    // Create pool if it doesn't exist
+    if (!poolManager.getFacilityInstances(nodeKey).length) {
+      poolManager.createPool(node, nodeKey);
+    }
+
+    // Allocate from pool
+    const allocations = poolManager.allocate(nodeKey, demandRate);
+
+    allocations.forEach((allocation) => {
+      // Create edge from allocated facility to consumer
+      edges.push(
+        createEdge(
+          `e${edgeIdCounter.count++}`,
+          allocation.sourceNodeId,
+          consumerFacilityId,
+          allocation.allocatedAmount,
+          edgeDirection,
+        ),
+      );
+
+      // If this facility hasn't been processed yet, create its node and process dependencies
+      if (!poolManager.isProcessed(allocation.sourceNodeId)) {
+        poolManager.markProcessed(allocation.sourceNodeId);
+
+        const facilityInstance = poolManager
+          .getFacilityInstances(nodeKey)
+          .find((f) => f.facilityId === allocation.sourceNodeId);
+
+        if (facilityInstance) {
+          const totalFacilities =
+            poolManager.getFacilityInstances(nodeKey).length;
+          const isPartialLoad =
+            facilityInstance.actualOutputRate <
+            facilityInstance.maxOutputRate * 0.999;
+
+          // Create facility node
+          flowNodes.push(
+            createProductionFlowNode(
+              allocation.sourceNodeId,
+              {
+                ...node,
+                targetRate: facilityInstance.actualOutputRate,
+                facilityCount: 1,
+              },
+              items,
+              facilities,
+              facilityInstance.facilityIndex,
+              totalFacilities,
+              isPartialLoad,
+              false,
+              undefined,
+            ),
+          );
+
+          // Recursively process dependencies
+          if (node.recipe) {
+            node.dependencies.forEach((dep) => {
+              const depDemandRate = calculateDemandRate(
+                node.recipe!,
+                dep.item.id,
+                node.item.id,
+                facilityInstance.actualOutputRate,
+              );
+
+              if (depDemandRate !== null) {
+                allocateUpstream(dep, depDemandRate, allocation.sourceNodeId);
+              }
+            });
+          }
+        }
+      }
+    });
+  }
+
+  // Main loop: process each root node
+  rootNodes.forEach((rootNode) => {
+    const key = createFlowNodeKey(rootNode);
+    const isTargetWithoutDownstream =
+      rootNode.isTarget && !targetsWithDownstream.has(key);
+
+    if (isTargetWithoutDownstream) {
+      // Create target sink node only
+      const targetSinkId = createTargetSinkId(rootNode.item.id);
+
+      targetSinkNodes.push({
+        id: targetSinkId,
+        type: "targetSink",
+        data: {
+          item: rootNode.item,
+          targetRate: rootNode.targetRate,
+          items,
+          facilities,
+          productionInfo: {
+            facility: rootNode.facility,
+            facilityCount: rootNode.facilityCount,
+            recipe: rootNode.recipe,
+          },
+        },
+        position: { x: 0, y: 0 },
+        targetPosition: Position.Left,
+      });
+
+      // Allocate upstream for target sink's dependencies
+      if (rootNode.recipe) {
+        rootNode.dependencies.forEach((dep) => {
+          const depDemandRate = calculateDemandRate(
+            rootNode.recipe!,
+            dep.item.id,
+            rootNode.item.id,
+            rootNode.targetRate,
+          );
+
+          if (depDemandRate !== null) {
+            allocateUpstream(dep, depDemandRate, targetSinkId);
+          }
+        });
+      }
+    } else {
+      // Create production facility instances for targets with downstream
+      const isDirectTarget =
+        rootNode.isTarget && targetsWithDownstream.has(key);
+
+      if (rootNode.isRawMaterial) {
+        // Handle raw material targets
+        const nodeKey = createFlowNodeKey(rootNode);
+        const rawNodeId = createFlowNodeId(nodeKey);
+        rawMaterialNodes.set(rootNode.item.id, rawNodeId);
+
+        flowNodes.push(
+          createProductionFlowNode(
+            rawNodeId,
+            rootNode,
+            items,
+            facilities,
+            undefined,
+            undefined,
+            undefined,
+            isDirectTarget,
+            isDirectTarget ? rootNode.targetRate : undefined,
+          ),
+        );
+      } else {
+        // Create production facilities and allocate their dependencies
+        poolManager.createPool(rootNode, key);
+        const facilityInstances = poolManager.getFacilityInstances(key);
+
+        facilityInstances.forEach((facilityInstance) => {
+          poolManager.markProcessed(facilityInstance.facilityId);
+
+          const isPartialLoad =
+            facilityInstance.actualOutputRate <
+            facilityInstance.maxOutputRate * 0.999;
+
+          flowNodes.push(
+            createProductionFlowNode(
+              facilityInstance.facilityId,
+              {
+                ...rootNode,
+                targetRate: facilityInstance.actualOutputRate,
+                facilityCount: 1,
+              },
+              items,
+              facilities,
+              facilityInstance.facilityIndex,
+              facilityInstances.length,
+              isPartialLoad,
+              isDirectTarget,
+              isDirectTarget ? rootNode.targetRate : undefined,
+            ),
+          );
+
+          // Allocate upstream for this facility's dependencies
+          if (rootNode.recipe) {
+            rootNode.dependencies.forEach((dep) => {
+              const depDemandRate = calculateDemandRate(
+                rootNode.recipe!,
+                dep.item.id,
+                rootNode.item.id,
+                facilityInstance.actualOutputRate,
+              );
+
+              if (depDemandRate !== null) {
+                allocateUpstream(
+                  dep,
+                  depDemandRate,
+                  facilityInstance.facilityId,
+                );
+              }
+            });
+          }
+        });
+      }
+    }
+  });
+
+  // Create target sink nodes for targets with downstream
+  const targetsWithDownstreamList = Array.from(nodeMap.entries()).filter(
+    ([key]) => targetsWithDownstream.has(key),
+  );
+
+  targetsWithDownstreamList.forEach(([key, data]) => {
+    const targetSinkId = createTargetSinkId(data.node.item.id);
+
+    targetSinkNodes.push({
+      id: targetSinkId,
+      type: "targetSink",
+      data: {
+        item: data.node.item,
+        targetRate: data.totalRate,
+        items,
+        facilities,
+        productionInfo: undefined, // No production info for targets with downstream
+      },
+      position: { x: 0, y: 0 },
+      targetPosition: Position.Left,
+    });
+
+    // Connect production facilities to target sink
+    poolManager.allocate(key, data.totalRate).forEach((allocation) => {
+      edges.push(
+        createEdge(
+          `e${edgeIdCounter.count++}`,
+          allocation.sourceNodeId,
+          targetSinkId,
+          allocation.allocatedAmount,
+        ),
+      );
+    });
+  });
+
+  return {
+    nodes: [...flowNodes, ...targetSinkNodes],
+    edges: edges,
   };
 }
