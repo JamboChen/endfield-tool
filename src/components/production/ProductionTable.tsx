@@ -317,15 +317,22 @@ const ProductionTable = memo(function ProductionTable({
               const shouldDim =
                 hoveredItemId !== null && !highlightedItemIds.has(line.item.id);
               const isHovered = hoveredItemId === line.item.id;
+              const isDependency =
+                hoveredItemId !== null &&
+                !isHovered &&
+                highlightedItemIds.has(line.item.id);
 
               // Determine row styling
-              let rowClassName = "h-12";
+              let rowClassName = "h-12 transition-all duration-200";
               if (line.isTarget) {
                 rowClassName =
-                  "h-12 bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-100/70 dark:hover:bg-amber-900/30";
+                  "h-12 transition-all duration-200 bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-100/70 dark:hover:bg-amber-900/30";
               } else if (isManualRaw) {
                 rowClassName =
-                  "h-12 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100/70 dark:hover:bg-blue-900/30";
+                  "h-12 transition-all duration-200 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100/70 dark:hover:bg-blue-900/30";
+              }
+              if (isDependency) {
+                rowClassName += " bg-green-50/30 dark:bg-green-900/10";
               }
 
               return (
@@ -334,7 +341,8 @@ const ProductionTable = memo(function ProductionTable({
                   className={[
                     rowClassName,
                     shouldDim && "opacity-30",
-                    isHovered && "ring-2 ring-inset ring-primary/50",
+                    isHovered && "ring-2 ring-inset ring-blue-500/60",
+                    isDependency && "ring-1 ring-inset ring-green-500/40",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -349,12 +357,17 @@ const ProductionTable = memo(function ProductionTable({
                         "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-amber-500",
                       isManualRaw &&
                         "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-blue-500",
+                      isHovered &&
+                        "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-blue-500 after:shadow-[0_0_8px_rgba(59,130,246,0.5)]",
+                      isDependency &&
+                        !line.isTarget &&
+                        !isManualRaw &&
+                        "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-green-500 after:shadow-[0_0_6px_rgba(34,197,94,0.4)]",
                     ]
                       .filter(Boolean)
                       .join(" ")}
                   >
                     <div className="flex justify-center">
-                      {/* Only show switch for items that can be manually toggled */}
                       {!line.isTarget &&
                         !(line.isRawMaterial && !line.isManualRawMaterial) && (
                           <Tooltip>
