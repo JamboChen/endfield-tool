@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -34,6 +34,7 @@ export type ProductionLineData = {
   isRawMaterial?: boolean;
   isTarget?: boolean;
   isManualRawMaterial?: boolean;
+  directDependencyItemIds?: Set<ItemId>;
 };
 
 type ProductionTableProps = {
@@ -235,6 +236,7 @@ const ProductionTable = memo(function ProductionTable({
   onToggleRawMaterial,
 }: ProductionTableProps) {
   const { t } = useTranslation("production");
+  const [hoveredItemId, setHoveredItemId] = useState<ItemId | null>(null);
 
   const getItemById = useCallback(
     (itemId: ItemId): Item | undefined => {
@@ -242,6 +244,23 @@ const ProductionTable = memo(function ProductionTable({
     },
     [items],
   );
+
+  const highlightedItemIds = useMemo(() => {
+    if (!hoveredItemId) return new Set<ItemId>();
+
+    const highlighted = new Set<ItemId>();
+    highlighted.add(hoveredItemId); // Add the hovered item itself
+
+    // Find the hovered line and add its direct dependencies
+    const hoveredLine = data.find((line) => line.item.id === hoveredItemId);
+    if (hoveredLine?.directDependencyItemIds) {
+      hoveredLine.directDependencyItemIds.forEach((depId) => {
+        highlighted.add(depId);
+      });
+    }
+
+    return highlighted;
+  }, [hoveredItemId, data]);
 
   return (
     <div className="rounded-md border">
@@ -295,6 +314,10 @@ const ProductionTable = memo(function ProductionTable({
 
               const isManualRaw = line.isManualRawMaterial;
 
+              const shouldDim =
+                hoveredItemId !== null && !highlightedItemIds.has(line.item.id);
+              const isHovered = hoveredItemId === line.item.id;
+
               // Determine row styling
               let rowClassName = "h-12";
               if (line.isTarget) {
@@ -306,7 +329,18 @@ const ProductionTable = memo(function ProductionTable({
               }
 
               return (
-                <TableRow key={line.item.id} className={rowClassName}>
+                <TableRow
+                  key={line.item.id}
+                  className={[
+                    rowClassName,
+                    shouldDim && "opacity-30",
+                    isHovered && "ring-2 ring-inset ring-primary/50",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onMouseEnter={() => setHoveredItemId(line.item.id)}
+                  onMouseLeave={() => setHoveredItemId(null)}
+                >
                   {/* Raw material toggle */}
                   <TableCell
                     className={[
