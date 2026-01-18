@@ -142,14 +142,6 @@ export function findTargetsWithDownstream(
   return downstreamTargets;
 }
 
-export function shouldSkipNode(
-  node: ProductionNode,
-  nodeKey: string,
-  targetsWithDownstream: Set<string>,
-): boolean {
-  return node.isTarget && !targetsWithDownstream.has(nodeKey);
-}
-
 /**
  * Creates a standardized edge for React Flow with optional pre-computed direction.
  *
