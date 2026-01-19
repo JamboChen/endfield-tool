@@ -222,11 +222,11 @@ export function applyEdgeStyling(edges: Edge[], nodes: Node[]): Edge[] {
 
     // Calculate animation speed based on flow rate
     // Higher rate = faster animation (shorter duration)
-    // Range: 0.5s (fast) to 10s (slow)
-    const minDuration = 0.5;
+    const minDuration = 1.5;
     const maxDuration = 10;
     const animationDuration =
-      maxDuration - (maxDuration - minDuration) * normalizedRate;
+      maxDuration * Math.pow(1 - normalizedRate, 1.5) +
+      minDuration * Math.pow(normalizedRate, 0.5);
 
     // Detect backward edge based on actual node positions
     // If source X > target X, it's a backward edge (goes right to left)

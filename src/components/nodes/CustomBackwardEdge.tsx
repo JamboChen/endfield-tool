@@ -20,8 +20,8 @@ export default function CustomBackwardEdge({
 }: EdgeProps) {
   // Calculate control points for a wide arc that goes up/down to avoid the source node
   // The arc should be large enough to clear the node (nodeHeight ~= 110px)
-  const verticalOffset = 240; // How far up/down the arc goes
-  const horizontalOffset = 150; // How far right the arc initially goes before curving back
+  const verticalOffset = 180; // How far up/down the arc goes
+  const horizontalOffset = 120; // How far right the arc initially goes before curving back
 
   // Determine if we should arc upward or downward
   // If source is below target (sourceY > targetY), arc downward to go around

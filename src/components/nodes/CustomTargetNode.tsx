@@ -1,5 +1,6 @@
-import { Handle, type NodeProps, Position } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
+import type { Node, NodeProps } from "@xyflow/react";
+import { Target, Factory } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
@@ -42,10 +43,10 @@ export default function CustomTargetNode({
       <TooltipTrigger asChild>
         <Card
           className="
-            w-52 h-full shadow-xl
-            border-4 border-amber-500 dark:border-amber-400
-            bg-linear-to-br from-amber-50 to-green-50 dark:from-amber-950/30 dark:to-green-950/30
-            hover:shadow-2xl transition-shadow cursor-help relative
+            w-52 shadow-xl
+            border-2 border-amber-600 dark:border-amber-500
+            bg-amber-50/40 dark:bg-amber-950/20
+            hover:shadow-2xl transition-all cursor-help relative
           "
         >
           {/* Target handle for incoming connections */}
@@ -55,49 +56,48 @@ export default function CustomTargetNode({
             isConnectable={false}
             className="bg-amber-500!"
           />
-          <CardContent className="p-3 text-xs">
+          <CardContent className="p-2.5 text-xs">
             {/* Target indicator and item info */}
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">🎯</span>
+              <div className="h-5 w-5 rounded-sm bg-amber-500 dark:bg-amber-600 flex items-center justify-center">
+                <Target className="h-3 w-3 text-white" />
+              </div>
               <ItemIcon item={item} />
               <span className="font-bold truncate flex-1">{itemName}</span>
             </div>
-
             {/* Target label */}
-            <div className="text-center mb-2">
+            <div className="text-center mb-2 px-2 py-0.5 bg-amber-100/70 dark:bg-amber-900/40 border border-amber-200/50 dark:border-amber-800/50 rounded-sm">
               <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold uppercase tracking-wide">
                 {t("tree.target")}
               </span>
             </div>
-
             {/* Target rate */}
-            <div className="flex items-center justify-between bg-amber-100/70 dark:bg-amber-900/50 rounded px-2 py-1 mb-2">
+            <div className="flex items-center justify-between bg-card border border-border/50 rounded-sm px-2 py-1 mb-2">
               <span className="text-muted-foreground text-[10px]">
                 {t("tree.targetRate")}
               </span>
-              <span className="font-mono font-semibold text-amber-700 dark:text-amber-300">
+              <span className="font-mono font-semibold text-amber-700 dark:text-amber-400 text-xs">
                 {formatNumber(targetRate)} /min
               </span>
             </div>
-
             {/* Production info for terminal targets */}
             {isTerminalTarget && facility && (
-              <div className="flex items-center justify-between bg-blue-100/70 dark:bg-blue-900/50 rounded-lg px-2 py-1">
+              <div className="flex items-center justify-between bg-blue-100/50 dark:bg-blue-900/30 border border-blue-200/50 dark:border-blue-800/50 rounded-sm px-2 py-1">
                 <div className="flex items-center gap-1.5">
                   {facility.iconUrl ? (
                     <img
                       src={facility.iconUrl}
                       alt={facilityName}
-                      className="h-5 w-5 object-contain"
+                      className="h-4 w-4 object-contain"
                     />
                   ) : (
-                    <span className="text-sm">🏭</span>
+                    <Factory className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   )}
                   <span className="text-[10px] text-muted-foreground truncate max-w-20">
                     {facilityName}
                   </span>
                 </div>
-                <span className="font-mono font-semibold text-blue-700 dark:text-blue-300">
+                <span className="font-mono font-semibold text-blue-700 dark:text-blue-300 text-xs">
                   ×{formatNumber(productionInfo.facilityCount, 1)}
                 </span>
               </div>

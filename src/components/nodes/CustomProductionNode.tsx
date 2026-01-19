@@ -1,5 +1,6 @@
 import { Handle, type NodeProps, type Node, Position } from "@xyflow/react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Factory, Zap, Star } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -87,13 +88,17 @@ export default function CustomProductionNode({
   const targetRate = isTarget ? data.directTargetRate : undefined;
 
   // Adjust border colors based on node type for better visual distinction
-  let borderColor = "border-gray-300 dark:border-gray-600";
-  if (!node.isRawMaterial && node.recipe) {
-    // Regular production nodes get blue border
-    borderColor = "border-blue-600 dark:border-blue-400";
-  } else if (node.isRawMaterial) {
-    // Raw materials get green border
-    borderColor = "border-green-600 dark:border-green-400";
+  let borderClasses = "border-2";
+  let bgClasses = "";
+
+  if (node.isRawMaterial) {
+    borderClasses += " border-green-600 dark:border-green-500";
+    bgClasses = "bg-green-50 dark:bg-green-950/40";
+  } else if (node.recipe) {
+    borderClasses += " border-blue-600 dark:border-blue-500";
+    bgClasses = "bg-blue-50/30 dark:bg-blue-950/20";
+  } else {
+    borderClasses += " border-border";
   }
 
   // Tooltip content for detailed node information
@@ -149,19 +154,12 @@ export default function CustomProductionNode({
     </div>
   );
 
-  // CSS classes for facility block and circular warning for consistent styling
-  const facilityBlockClasses =
-    "flex items-center justify-between bg-blue-100/70 dark:bg-blue-900/50 rounded-lg px-2 py-1 transition-colors";
-  const partialLoadClasses =
-    "text-yellow-600 dark:text-yellow-400 font-medium text-[10px] mt-1 text-center py-0.5 rounded bg-yellow-100/70 dark:bg-yellow-900/30";
-
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Card
-          className={`w-52 shadow-lg ${borderColor} border-2 hover:shadow-xl transition-shadow cursor-help relative`}
+          className={`w-52 shadow-lg ${borderClasses} ${bgClasses} hover:shadow-xl transition-all cursor-help relative`}
         >
-          {/* target handle */}
           <Handle
             type="target"
             position={Position.Left}
@@ -169,15 +167,14 @@ export default function CustomProductionNode({
             isConnectable={false}
             className="w-3! h-3!"
           />
-          <CardContent className="p-3 text-xs">
+          <CardContent className="p-2.5 text-xs">
             {/* Item icon and name */}
             <div className="flex items-center gap-2 mb-2 relative">
               <ItemIcon item={node.item} />
               <span className="font-bold truncate flex-1">
                 {itemName}
-                {/* Show facility index in separated mode */}
                 {isSeparated && data.facilityIndex !== undefined && (
-                  <span className="text-muted-foreground ml-1 text-[10px]">
+                  <span className="text-muted-foreground ml-1 text-[10px] font-normal">
                     #{data.facilityIndex + 1}
                   </span>
                 )}
@@ -186,8 +183,8 @@ export default function CustomProductionNode({
               {isTarget && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="absolute -top-1 -right-1 bg-amber-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md">
-                      ⭐
+                    <div className="absolute -top-1 -right-1 bg-amber-500 dark:bg-amber-600 text-white rounded-sm w-5 h-5 flex items-center justify-center shadow-sm">
+                      <Star className="h-3 w-3 fill-current" />
                     </div>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -198,35 +195,33 @@ export default function CustomProductionNode({
                 </Tooltip>
               )}
             </div>
-
             {/* Production/Requirement rate */}
-            <div className="flex items-center justify-between mb-2 bg-muted/50 rounded px-2 py-1">
+            <div className="flex items-center justify-between mb-2 bg-muted/30 border border-border/50 rounded-sm px-2 py-1">
               <span className="text-muted-foreground text-[10px]">
                 {node.isRawMaterial ? t("tree.required") : t("tree.produced")}
               </span>
-              <span className="font-mono font-semibold">
+              <span className="font-mono font-semibold text-xs">
                 {formatNumber(node.targetRate)} /min
               </span>
             </div>
-
             {/* Facility details */}
             {!node.isRawMaterial && facility && (
-              <div className={facilityBlockClasses}>
+              <div className="flex items-center justify-between bg-blue-100/50 dark:bg-blue-900/30 border border-blue-200/50 dark:border-blue-800/50 rounded-sm px-2 py-1">
                 <div className="flex items-center gap-1.5">
                   {facility.iconUrl ? (
                     <img
                       src={facility.iconUrl}
                       alt={facilityName}
-                      className="h-5 w-5 object-contain"
+                      className="h-4 w-4 object-contain"
                     />
                   ) : (
-                    <span className="text-sm">🏭</span>
+                    <Factory className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   )}
                   <span className="text-[10px] text-muted-foreground truncate max-w-20">
                     {facilityName}
                   </span>
                 </div>
-                <span className="font-mono font-semibold text-blue-700 dark:text-blue-300">
+                <span className="font-mono font-semibold text-blue-700 dark:text-blue-300 text-xs">
                   {isSeparated
                     ? `${data.facilityIndex! + 1}/${data.totalFacilities}`
                     : `×${formatNumber(node.facilityCount, 1)}`}
@@ -235,12 +230,12 @@ export default function CustomProductionNode({
             )}
             {/* Partial load indicator (separated mode only) */}
             {isSeparated && data.isPartialLoad && (
-              <div className={partialLoadClasses}>
-                ⚡ {t("tree.partialLoad")}
+              <div className="flex items-center justify-center gap-1 text-yellow-600 dark:text-yellow-400 font-medium text-[10px] mt-2 py-1 rounded-sm bg-yellow-100/50 dark:bg-yellow-900/20 border border-yellow-200/50 dark:border-yellow-800/50">
+                <Zap className="h-3 w-3" />
+                <span>{t("tree.partialLoad")}</span>
               </div>
             )}
           </CardContent>
-          {/*  source handle */}
           <Handle
             type="source"
             position={Position.Right}
