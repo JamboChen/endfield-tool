@@ -293,19 +293,9 @@ export function mapPlanToFlowSeparated(
   rootNodes.forEach((rootNode) => {
     const key = createFlowNodeKey(rootNode);
 
-    // Check if this is a single-facility target - skip it here, handle in target sink creation
-    const isSingleFacilityTarget =
-      rootNode.isTarget &&
-      !rootNode.isRawMaterial &&
-      rootNode.facilityCount >= 0.999 &&
-      rootNode.facilityCount <= 1.001;
-
-    if (isSingleFacilityTarget) {
-      return; // Skip single-facility targets in main loop
-    }
-
-    // Create production facility instances for all targets
-    const isDirectTarget = rootNode.isTarget;
+    // Skip all non-raw-material targets - they'll be handled as target sinks
+    const shouldSkip = rootNode.isTarget && !rootNode.isRawMaterial;
+    if (shouldSkip) return;
 
     if (rootNode.isRawMaterial) {
       // Handle raw material targets
@@ -322,8 +312,8 @@ export function mapPlanToFlowSeparated(
           undefined,
           undefined,
           undefined,
-          isDirectTarget,
-          isDirectTarget ? rootNode.targetRate : undefined,
+          rootNode.isTarget,
+          rootNode.isTarget ? rootNode.targetRate : undefined,
         ),
       );
     } else {
@@ -351,8 +341,8 @@ export function mapPlanToFlowSeparated(
             facilityInstance.facilityIndex,
             facilityInstances.length,
             isPartialLoad,
-            isDirectTarget,
-            isDirectTarget ? rootNode.targetRate : undefined,
+            false, // isDirectTarget is always false here since targets are skipped
+            undefined,
           ),
         );
 
@@ -380,11 +370,18 @@ export function mapPlanToFlowSeparated(
     ([, data]) => data.node.isTarget,
   );
 
-  allTargetsList.forEach(([key, data]) => {
+  allTargetsList.forEach(([, data]) => {
     const targetSinkId = createTargetSinkId(data.node.item.id);
 
-    // Check if this is a single-facility target
-    const isSingleFacility = data.totalFacilityCount <= 1.001;
+    // Raw material targets don't need productionInfo
+    const isRawMaterialTarget = data.node.isRawMaterial;
+
+    console.log(`Creating target sink for ${data.node.item.id}:`, {
+      isRawMaterialTarget,
+      totalFacilityCount: data.totalFacilityCount,
+      hasRecipe: !!data.node.recipe,
+      hasFacility: !!data.node.facility,
+    });
 
     targetSinkNodes.push({
       id: targetSinkId,
@@ -394,7 +391,8 @@ export function mapPlanToFlowSeparated(
         targetRate: data.totalRate,
         items,
         facilities,
-        productionInfo: isSingleFacility
+        // Non-raw-material targets always show production info in separated mode
+        productionInfo: !isRawMaterialTarget
           ? {
               facility: data.node.facility,
               facilityCount: data.totalFacilityCount,
@@ -406,8 +404,8 @@ export function mapPlanToFlowSeparated(
       targetPosition: Position.Left,
     });
 
-    if (isSingleFacility) {
-      // Single facility: connect dependencies directly to target sink
+    if (!isRawMaterialTarget) {
+      // Non-raw-material targets: connect dependencies directly to target sink
       if (data.node.recipe) {
         data.node.dependencies.forEach((dep) => {
           const depDemandRate = calculateDemandRate(
@@ -422,18 +420,6 @@ export function mapPlanToFlowSeparated(
           }
         });
       }
-    } else {
-      // Multiple facilities: connect from facility pool to target sink
-      poolManager.allocate(key, data.totalRate).forEach((allocation) => {
-        edges.push(
-          createEdge(
-            `e${edgeIdCounter.count++}`,
-            allocation.sourceNodeId,
-            targetSinkId,
-            allocation.allocatedAmount,
-          ),
-        );
-      });
     }
   });
 
