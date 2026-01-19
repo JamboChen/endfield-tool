@@ -57,13 +57,13 @@ const ItemIcon = memo(({ item }: { item: Item }) => {
       <img
         src={item.iconUrl}
         alt={itemName}
-        className="h-4 w-4 object-contain inline-block"
+        className="h-3 w-3 object-contain inline-block"
       />
     );
   }
 
   return (
-    <span className="inline-block w-4 h-4 bg-muted rounded text-[8px] text-center leading-4">
+    <span className="inline-block w-3 h-3 bg-muted rounded text-[7px] text-center leading-3">
       ?
     </span>
   );
@@ -98,7 +98,7 @@ const RecipeIOCompact = memo(
                 className="inline-flex items-center gap-0.5"
               >
                 {item && <ItemIcon item={item} />}
-                <span className="text-[11px]">×{ri.amount}</span>
+                <span className="text-[10px]">×{ri.amount}</span>
                 {idx < displayed.length - 1 && (
                   <span className="text-muted-foreground mx-0.5">+</span>
                 )}
@@ -115,11 +115,11 @@ const RecipeIOCompact = memo(
     };
 
     return (
-      <div className="flex items-center gap-1 text-xs flex-wrap">
+      <div className="flex items-center gap-0.5 text-xs flex-wrap">
         {renderItems(recipe.inputs, maxDisplay)}
-        <span className="text-muted-foreground mx-1">→</span>
+        <span className="text-muted-foreground mx-0.5">→</span>
         {renderItems(recipe.outputs, maxDisplay)}
-        <span className="text-[10px] text-muted-foreground ml-1">
+        <span className="text-[10px] text-muted-foreground ml-0.5">
           ({recipe.craftingTime}s)
         </span>
       </div>
@@ -266,30 +266,27 @@ const ProductionTable = memo(function ProductionTable({
     <div className="rounded-md border">
       <Table>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-16 h-8 text-center">
-              {t("table.headers.rawMaterial")}
-            </TableHead>
-            <TableHead className="w-12 h-8">
-              {t("table.headers.icon")}
-            </TableHead>
-            <TableHead className="h-8 w-40">
+          <TableRow className="hover:bg-transparent border-b-2">
+            <TableHead className="h-8 w-52 bg-muted/30 font-semibold">
               {t("table.headers.item")}
             </TableHead>
-            <TableHead className="h-8 min-w-[400px]">
-              {t("table.headers.recipe")}
-            </TableHead>
-            <TableHead className="h-8 w-14 text-center">
-              {t("table.headers.facility")}
-            </TableHead>
-            <TableHead className="text-right h-8 w-[90px]">
-              {t("table.headers.count")}
-            </TableHead>
-            <TableHead className="text-right h-8 w-[100px]">
+            <TableHead className="text-right h-8 w-[100px] bg-muted/30 font-semibold">
               {t("table.headers.outputRate")}
             </TableHead>
-            <TableHead className="text-right h-8 w-[100px]">
+            <TableHead className="h-8 w-14 text-center bg-muted/30 font-semibold">
+              {t("table.headers.facility")}
+            </TableHead>
+            <TableHead className="text-right h-8 w-[90px] bg-muted/30 font-semibold">
+              {t("table.headers.count")}
+            </TableHead>
+            <TableHead className="h-8 min-w-[280px] bg-muted/30 font-semibold">
+              {t("table.headers.recipe")}
+            </TableHead>
+            <TableHead className="text-right h-8 w-[100px] bg-muted/30 font-semibold">
               {t("table.headers.power")}
+            </TableHead>
+            <TableHead className="w-16 h-8 text-center bg-muted/30 font-semibold">
+              {t("table.headers.rawMaterial")}
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -341,7 +338,7 @@ const ProductionTable = memo(function ProductionTable({
                   className={[
                     rowClassName,
                     shouldDim && "opacity-30",
-                    isHovered && "ring-2 ring-inset ring-blue-500/60",
+                    isHovered && "ring-2 ring-inset ring-blue-500/60 shadow-sm",
                     isDependency && "ring-1 ring-inset ring-green-500/40",
                   ]
                     .filter(Boolean)
@@ -349,82 +346,74 @@ const ProductionTable = memo(function ProductionTable({
                   onMouseEnter={() => setHoveredItemId(line.item.id)}
                   onMouseLeave={() => setHoveredItemId(null)}
                 >
-                  {/* Raw material toggle */}
+                  {/* Item (icon + name merged) */}
                   <TableCell
                     className={[
                       "p-2 relative",
                       line.isTarget &&
-                        "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-amber-500",
+                      "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-amber-500",
                       isManualRaw &&
-                        "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-blue-500",
+                      "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-blue-500",
                       isHovered &&
-                        "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-blue-500 after:shadow-[0_0_8px_rgba(59,130,246,0.5)]",
+                      "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-blue-500 after:shadow-[0_0_8px_rgba(59,130,246,0.5)]",
                       isDependency &&
-                        !line.isTarget &&
-                        !isManualRaw &&
-                        "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-green-500 after:shadow-[0_0_6px_rgba(34,197,94,0.4)]",
+                      !line.isTarget &&
+                      !isManualRaw &&
+                      "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-green-500 after:shadow-[0_0_6px_rgba(34,197,94,0.4)]",
                     ]
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <div className="flex justify-center">
-                      {!line.isTarget &&
-                        !(line.isRawMaterial && !line.isManualRawMaterial) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div>
-                                <Switch
-                                  checked={line.isManualRawMaterial}
-                                  onCheckedChange={() =>
-                                    onToggleRawMaterial(line.item.id)
-                                  }
-                                  className="data-[state=checked]:bg-blue-500"
-                                />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {line.isManualRawMaterial ? (
-                                <p className="text-xs">
-                                  {t("table.unmarkRawMaterial")}
-                                </p>
-                              ) : (
-                                <p className="text-xs">
-                                  {t("table.markAsRawMaterial")}
-                                </p>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
+                    <div className="flex items-center gap-2">
+                      {line.item.iconUrl ? (
+                        <img
+                          src={line.item.iconUrl}
+                          alt={getItemName(line.item)}
+                          className="h-8 w-8 object-contain flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 bg-muted rounded flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px]">📦</span>
+                        </div>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="font-medium text-sm truncate cursor-help">
+                            {getItemName(line.item)}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p className="text-xs">{getItemName(line.item)}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
 
-                  {/* Icon */}
-                  <TableCell className="p-2">
-                    {line.item.iconUrl ? (
-                      <img
-                        src={line.item.iconUrl}
-                        alt={getItemName(line.item)}
-                        className="h-8 w-8 object-contain"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
-                        <span className="text-[10px]">📦</span>
-                      </div>
-                    )}
+                  {/* Output rate */}
+                  <TableCell className="text-right font-mono text-sm tabular-nums p-2">
+                    <div className="flex flex-col items-end">
+                      <span>{formatNumber(line.outputRate)}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        /min
+                      </span>
+                    </div>
                   </TableCell>
 
-                  {/* Item name */}
+                  {/* Facility icon */}
                   <TableCell className="p-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="font-medium text-sm truncate cursor-help">
-                          {getItemName(line.item)}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p className="text-xs">{getItemName(line.item)}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <FacilityIcon
+                      facility={line.facility}
+                      isRawMaterial={line.isRawMaterial || isManualRaw}
+                    />
+                  </TableCell>
+
+                  {/* Facility count */}
+                  <TableCell className="text-right font-mono text-sm tabular-nums p-2">
+                    {line.isRawMaterial || isManualRaw ? (
+                      <span className="text-muted-foreground">-</span>
+                    ) : (
+                      formatNumber(line.facilityCount, 1)
+                    )}
                   </TableCell>
 
                   {/* Recipe - hide when manually marked as raw material */}
@@ -503,35 +492,8 @@ const ProductionTable = memo(function ProductionTable({
                     )}
                   </TableCell>
 
-                  {/* Facility icon */}
-                  <TableCell className="p-2">
-                    <FacilityIcon
-                      facility={line.facility}
-                      isRawMaterial={line.isRawMaterial || isManualRaw}
-                    />
-                  </TableCell>
-
-                  {/* Facility count */}
-                  <TableCell className="text-right font-mono text-sm p-2">
-                    {line.isRawMaterial || isManualRaw ? (
-                      <span className="text-muted-foreground">-</span>
-                    ) : (
-                      formatNumber(line.facilityCount, 1)
-                    )}
-                  </TableCell>
-
-                  {/* Output rate */}
-                  <TableCell className="text-right font-mono text-sm p-2">
-                    <div className="flex flex-col items-end">
-                      <span>{formatNumber(line.outputRate)}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        /min
-                      </span>
-                    </div>
-                  </TableCell>
-
                   {/* Total power */}
-                  <TableCell className="text-right font-mono text-sm p-2">
+                  <TableCell className="text-right font-mono text-sm tabular-nums p-2">
                     {line.isRawMaterial || isManualRaw ? (
                       <span className="text-muted-foreground">-</span>
                     ) : (
@@ -542,6 +504,39 @@ const ProductionTable = memo(function ProductionTable({
                         </span>
                       </div>
                     )}
+                  </TableCell>
+
+                  {/* Raw material toggle */}
+                  <TableCell className="p-2">
+                    <div className="flex justify-center">
+                      {!line.isTarget &&
+                        !(line.isRawMaterial && !line.isManualRawMaterial) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <Switch
+                                  checked={line.isManualRawMaterial}
+                                  onCheckedChange={() =>
+                                    onToggleRawMaterial(line.item.id)
+                                  }
+                                  className="data-[state=checked]:bg-blue-500"
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {line.isManualRawMaterial ? (
+                                <p className="text-xs">
+                                  {t("table.unmarkRawMaterial")}
+                                </p>
+                              ) : (
+                                <p className="text-xs">
+                                  {t("table.markAsRawMaterial")}
+                                </p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
