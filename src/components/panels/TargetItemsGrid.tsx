@@ -113,14 +113,14 @@ const TargetItemsGrid = memo(function TargetItemsGrid({
       {/* 添加按钮 */}
       {targets.length < maxTargets && (
         <Card
-          className="border-dashed hover:border-primary hover:bg-accent/50 cursor-pointer transition-all"
+          className="border-2 border-dashed border-border hover:border-primary hover:bg-accent/30 cursor-pointer transition-all group"
           onClick={onAddClick}
         >
-          <div className="h-full flex flex-col items-center justify-center p-3 min-h-[140px]">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-2">
-              <Plus className="h-6 w-6 text-muted-foreground" />
+          <div className="h-full flex flex-col items-center justify-center p-2.5 min-h-[140px]">
+            <div className="h-10 w-10 border-2 border-dashed border-muted-foreground/40 group-hover:border-primary rounded-sm flex items-center justify-center mb-2 transition-colors">
+              <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
-            <div className="text-xs text-muted-foreground text-center">
+            <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors text-center font-medium">
               {t("addTarget")}
             </div>
           </div>

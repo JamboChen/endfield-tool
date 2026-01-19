@@ -81,11 +81,11 @@ const ProductionStats = memo(function ProductionStats({
             {facilityList.length > 0 && (
               <>
                 <Separator />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {facilityList.map(({ facility, count }) => (
                     <div
                       key={facility.id}
-                      className="space-y-0.5 p-2 rounded bg-muted/50"
+                      className="space-y-0.5 p-2 border border-border/50 bg-card"
                     >
                       <div className="flex items-center gap-1.5">
                         {facility.iconUrl && (
@@ -95,7 +95,7 @@ const ProductionStats = memo(function ProductionStats({
                             className="w-4 h-4 object-contain"
                           />
                         )}
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className="text-xs text-muted-foreground truncate flex-1">
                           {getFacilityName(facility)}
                         </div>
                       </div>
