@@ -34,9 +34,9 @@ const LeftPanel = memo(function LeftPanel({
 }: LeftPanelProps) {
   const { t } = useTranslation("targets");
   return (
-    <div className="w-[420px] flex flex-col gap-4 min-h-0">
+    <div className="w-[420px] flex flex-col gap-2.5 min-h-0">
       <Card className="shrink-0">
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">{t("title")}</CardTitle>
             <div className="text-xs text-muted-foreground">

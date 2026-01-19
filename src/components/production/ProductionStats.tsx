@@ -36,11 +36,11 @@ const ProductionStats = memo(function ProductionStats({
     .sort((a, b) => a.facility.id.localeCompare(b.facility.id));
 
   return (
-    <Card className="shrink-0">
-      <CardHeader className="pb-3">
+    <Card className="shrink-0 border-border/50">
+      <CardHeader>
         <CardTitle className="text-base">{t("title")}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5">
         {error ? (
           <div className="flex items-center gap-2 text-destructive text-sm p-3 bg-destructive/10 rounded">
             <AlertCircle className="h-4 w-4 shrink-0" />
@@ -53,7 +53,7 @@ const ProductionStats = memo(function ProductionStats({
                 <div className="text-xs text-muted-foreground">
                   {t("totalPower")}
                 </div>
-                <div className="text-lg font-bold">
+                <div className="text-lg font-bold font-mono">
                   {totalPowerConsumption.toFixed(1)}
                   <span className="text-xs font-normal text-muted-foreground ml-1">
                     {t("powerUnit")}
@@ -64,43 +64,48 @@ const ProductionStats = memo(function ProductionStats({
                 <div className="text-xs text-muted-foreground">
                   {t("productionSteps")}
                 </div>
-                <div className="text-lg font-bold">{productionSteps}</div>
+                <div className="text-lg font-bold font-mono">
+                  {productionSteps}
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">
                   {t("rawMaterials")}
                 </div>
-                <div className="text-lg font-bold">{rawMaterialCount}</div>
+                <div className="text-lg font-bold font-mono">
+                  {rawMaterialCount}
+                </div>
               </div>
             </div>
 
-            <Separator />
-
             {facilityList.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {facilityList.map(({ facility, count }) => (
-                  <div
-                    key={facility.id}
-                    className="space-y-0.5 p-2 rounded bg-muted/50"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      {facility.iconUrl && (
-                        <img
-                          src={facility.iconUrl}
-                          alt={getFacilityName(facility)}
-                          className="w-4 h-4 object-contain"
-                        />
-                      )}
-                      <div className="text-xs text-muted-foreground truncate">
-                        {getFacilityName(facility)}
+              <>
+                <Separator />
+                <div className="grid grid-cols-3 gap-2">
+                  {facilityList.map(({ facility, count }) => (
+                    <div
+                      key={facility.id}
+                      className="space-y-0.5 p-2 rounded bg-muted/50"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {facility.iconUrl && (
+                          <img
+                            src={facility.iconUrl}
+                            alt={getFacilityName(facility)}
+                            className="w-4 h-4 object-contain"
+                          />
+                        )}
+                        <div className="text-xs text-muted-foreground truncate">
+                          {getFacilityName(facility)}
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold font-mono">
+                        {count.toFixed(1)}
                       </div>
                     </div>
-                    <div className="text-sm font-semibold">
-                      {count.toFixed(1)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </>
         )}

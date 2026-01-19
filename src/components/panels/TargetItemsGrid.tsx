@@ -63,7 +63,7 @@ const TargetItemsGrid = memo(function TargetItemsGrid({
               <X className="h-3 w-3" />
             </Button>
 
-            <div className="p-3 space-y-2">
+            <div className="px-2 space-y-2">
               {/* 物品图标和名称 */}
               <div className="flex flex-col items-center gap-2">
                 {item.iconUrl ? (

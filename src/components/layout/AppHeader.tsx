@@ -27,7 +27,7 @@ export default function AppHeader({ onLanguageChange }: AppHeaderProps) {
   const [showWarning, setShowWarning] = useState(true);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       {/* Header bar with title and controls */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("title")}</h1>

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { BarChart3, Network } from "lucide-react";
 import ProductionTable from "./ProductionTable";
 import ProductionDependencyTree from "../flow/ProductionDependencyTree";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -43,7 +44,7 @@ export default function ProductionViewTabs({
   return (
     <div className="flex-1 min-w-0">
       <Card className="h-full flex flex-col">
-        <CardHeader className="pb-3 shrink-0">
+        <CardHeader className="shrink-0">
           <div className="flex items-center justify-between gap-4">
             <Tabs
               value={activeTab}
@@ -52,11 +53,11 @@ export default function ProductionViewTabs({
             >
               <TabsList className="grid w-full max-w-md grid-cols-2">
                 <TabsTrigger value="table" className="gap-2">
-                  <span className="text-base">📊</span>
+                  <BarChart3 className="h-4 w-4" />
                   <span>{t("tabs.table")}</span>
                 </TabsTrigger>
                 <TabsTrigger value="tree" className="gap-2">
-                  <span className="text-base">🌳</span>
+                  <Network className="h-4 w-4" />
                   <span>{t("tabs.tree")}</span>
                 </TabsTrigger>
               </TabsList>

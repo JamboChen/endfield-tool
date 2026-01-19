@@ -267,28 +267,28 @@ const ProductionTable = memo(function ProductionTable({
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-16 h-9 text-center">
+            <TableHead className="w-16 h-8 text-center">
               {t("table.headers.rawMaterial")}
             </TableHead>
-            <TableHead className="w-12 h-9">
+            <TableHead className="w-12 h-8">
               {t("table.headers.icon")}
             </TableHead>
-            <TableHead className="h-9 w-40">
+            <TableHead className="h-8 w-40">
               {t("table.headers.item")}
             </TableHead>
-            <TableHead className="h-9 min-w-[400px]">
+            <TableHead className="h-8 min-w-[400px]">
               {t("table.headers.recipe")}
             </TableHead>
-            <TableHead className="h-9 w-14 text-center">
+            <TableHead className="h-8 w-14 text-center">
               {t("table.headers.facility")}
             </TableHead>
-            <TableHead className="text-right h-9 w-[90px]">
+            <TableHead className="text-right h-8 w-[90px]">
               {t("table.headers.count")}
             </TableHead>
-            <TableHead className="text-right h-9 w-[100px]">
+            <TableHead className="text-right h-8 w-[100px]">
               {t("table.headers.outputRate")}
             </TableHead>
-            <TableHead className="text-right h-9 w-[100px]">
+            <TableHead className="text-right h-8 w-[100px]">
               {t("table.headers.power")}
             </TableHead>
           </TableRow>
