@@ -43,9 +43,11 @@ export default function App() {
           <LeftPanel
             targets={targets}
             items={items}
+            facilities={facilities}
             totalPowerConsumption={stats.totalPowerConsumption}
             productionSteps={stats.uniqueProductionSteps}
             rawMaterialCount={stats.rawMaterialRequirements.size}
+            facilityRequirements={stats.facilityRequirements}
             error={error}
             onTargetChange={handleTargetChange}
             onTargetRemove={handleTargetRemove}

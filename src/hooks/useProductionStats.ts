@@ -3,6 +3,7 @@ import type {
   ProductionDependencyGraph,
   ItemId,
   ProductionNode,
+  FacilityId,
 } from "@/types";
 import { createNodeKey } from "@/lib/node-keys";
 
@@ -10,6 +11,7 @@ export type ProductionStats = {
   totalPowerConsumption: number;
   rawMaterialRequirements: Map<ItemId, number>;
   uniqueProductionSteps: number;
+  facilityRequirements: Map<FacilityId, number>;
 };
 
 /**
@@ -21,6 +23,7 @@ function collectStats(
 ): ProductionStats {
   let totalPower = 0;
   const rawMaterials = new Map<ItemId, number>();
+  const facilityRequirements = new Map<FacilityId, number>();
   const processedNodes = new Set<string>();
 
   const traverse = (node: ProductionNode) => {
@@ -46,6 +49,14 @@ function collectStats(
     } else if (node.facility) {
       // Accumulate power consumption
       totalPower += node.facility.powerConsumption * node.facilityCount;
+
+      if (node.facilityCount >= 0.01) {
+        facilityRequirements.set(
+          node.facility.id,
+          (facilityRequirements.get(node.facility.id) || 0) +
+            node.facilityCount,
+        );
+      }
     }
 
     // Recursively traverse dependencies
@@ -58,6 +69,7 @@ function collectStats(
     totalPowerConsumption: totalPower,
     rawMaterialRequirements: rawMaterials,
     uniqueProductionSteps: processedNodes.size,
+    facilityRequirements,
   };
 }
 
@@ -75,6 +87,7 @@ export function useProductionStats(
         totalPowerConsumption: 0,
         rawMaterialRequirements: new Map(),
         uniqueProductionSteps: 0,
+        facilityRequirements: new Map(),
       };
     }
 
