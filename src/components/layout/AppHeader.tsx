@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Select,
@@ -13,8 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, X, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiGithub, SiDiscord, SiTencentqq } from "react-icons/si";
 
@@ -24,7 +22,6 @@ interface AppHeaderProps {
 
 export default function AppHeader({ onLanguageChange }: AppHeaderProps) {
   const { t, i18n } = useTranslation("app");
-  const [showWarning, setShowWarning] = useState(true);
 
   return (
     <div className="flex flex-col gap-2">
@@ -98,31 +95,6 @@ export default function AppHeader({ onLanguageChange }: AppHeaderProps) {
           </Select>
         </div>
       </div>
-
-      {/* Development Warning Banner */}
-      {showWarning && (
-        <Alert
-          variant="default"
-          className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20 relative"
-        >
-          <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
-          <AlertTitle className="text-yellow-800 dark:text-yellow-400">
-            {t("warning.title")}
-          </AlertTitle>
-          <AlertDescription className="text-yellow-700 dark:text-yellow-500">
-            {t("warning.description")}
-          </AlertDescription>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2 h-6 w-6 text-yellow-600 hover:text-yellow-800 dark:text-yellow-500 dark:hover:text-yellow-400"
-            onClick={() => setShowWarning(false)}
-            aria-label={t("warning.close")}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </Alert>
-      )}
     </div>
   );
 }
