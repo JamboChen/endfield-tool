@@ -27,8 +27,6 @@ export const items: Item[] = [
   { id: ItemId.ITEM_PLANT_SP_SEED_3, tier: 2 },
   { id: ItemId.ITEM_PLANT_SP_SEED_4, tier: 2 },
   { id: ItemId.ITEM_PLANT_TUNDRA_WOOD, tier: 1 },
-  { id: ItemId.ITEM_MUCK_FECES_1, tier: 1 },
-  { id: ItemId.ITEM_MUCK_XIRANITE_1, tier: 3 },
   { id: ItemId.ITEM_CARBON_MTL, tier: 2 },
   { id: ItemId.ITEM_CRYSTAL_SHELL, tier: 2 },
   { id: ItemId.ITEM_QUARTZ_GLASS, tier: 2 },
@@ -51,6 +49,7 @@ export const items: Item[] = [
   { id: ItemId.ITEM_CRYSTAL_ENR, tier: 3 },
   { id: ItemId.ITEM_QUARTZ_ENR, tier: 3 },
   { id: ItemId.ITEM_IRON_ENR, tier: 3 },
+  { id: ItemId.ITEM_MUCK_XIRANITE_1, tier: 3 },
   { id: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, tier: 2 },
   { id: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, tier: 3 },
   { id: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, tier: 2 },
@@ -84,6 +83,7 @@ export const items: Item[] = [
   { id: ItemId.ITEM_PLANT_GRASS_POWDER_1, tier: 2 },
   { id: ItemId.ITEM_PLANT_GRASS_POWDER_2, tier: 2 },
   { id: ItemId.ITEM_PROC_BOMB_1, tier: 3 },
+  { id: ItemId.ITEM_MUCK_FECES_1, tier: 1 },
 ];
 
 items.forEach((item) => {
