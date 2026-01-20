@@ -10,15 +10,10 @@
     "qqGroup": "QQ グループ"
   },
   "tabs": {
-    "merged": "統合",
-    "separated": "分離",
+    "merged": "レシピ表示",
+    "separated": "施設表示",
     "table": "生産表",
     "tree": "依存関係ツリー"
   },
-  "title": "Endfield Calc",
-  "warning": {
-    "close": "警告を閉じる",
-    "description": "データは未検証のため参考用です",
-    "title": "開発中"
-  }
+  "title": "Endfield Calc"
 }

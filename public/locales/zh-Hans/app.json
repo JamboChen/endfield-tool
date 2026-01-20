@@ -10,15 +10,10 @@
     "qqGroup": "QQ 群"
   },
   "tabs": {
-    "merged": "合并",
-    "separated": "分离",
+    "merged": "配方视图",
+    "separated": "设施视图",
     "table": "生产列表",
     "tree": "依赖关系图"
   },
-  "title": "终末地工厂生产计算器",
-  "warning": {
-    "close": "关闭警告",
-    "description": "数据未经验证，仅供参考",
-    "title": "开发中"
-  }
+  "title": "终末地工厂生产计算器"
 }

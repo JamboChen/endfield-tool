@@ -10,15 +10,10 @@
     "qqGroup": "QQ 그룹"
   },
   "tabs": {
-    "merged": "통합",
-    "separated": "분리",
+    "merged": "제조법 보기",
+    "separated": "시설 보기",
     "table": "생산 표",
     "tree": "의존성 트리"
   },
-  "title": "Endfield Calc",
-  "warning": {
-    "close": "경고 닫기",
-    "description": "데이터는 검증되지 않았으며 참고용입니다",
-    "title": "개발 중"
-  }
+  "title": "Endfield Calc"
 }

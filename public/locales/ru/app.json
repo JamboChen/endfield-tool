@@ -10,15 +10,10 @@
     "qqGroup": "Группа QQ"
   },
   "tabs": {
-    "merged": "Объединённый",
-    "separated": "Раздельный",
+    "merged": "Вид рецепта",
+    "separated": "Вид объектов",
     "table": "Таблица производства",
     "tree": "Дерево зависимостей"
   },
-  "title": "Endfield Calc",
-  "warning": {
-    "close": "Закрыть предупреждение",
-    "description": "Данные не проверены, только для справки",
-    "title": "В разработке"
-  }
+  "title": "Endfield Calc"
 }

@@ -10,15 +10,10 @@
     "qqGroup": "QQ Group"
   },
   "tabs": {
-    "merged": "Merged",
-    "separated": "Separated",
+    "merged": "Recipe View",
+    "separated": "Facility View",
     "table": "Production Table",
     "tree": "Dependency Tree"
   },
-  "title": "Endfield Calc",
-  "warning": {
-    "close": "Close warning",
-    "description": "Data not verified, for reference only",
-    "title": "In Development"
-  }
+  "title": "Endfield Calc"
 }
