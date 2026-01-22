@@ -66,11 +66,19 @@ export default function ProductionDependencyTree({
   const nodesInitialized = useNodesInitialized();
   const layoutDoneRef = useRef(false);
 
+  // Track previous graph signature and node positions
+  const prevSignatureRef = useRef<string>("");
+  const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(
+    new Map(),
+  );
+
   // Perform layout and styling asynchronously when plan or visualization mode changes
   useEffect(() => {
     if (!plan || plan.dependencyRootNodes.length === 0) {
       setNodes([]);
       setEdges([]);
+      prevSignatureRef.current = "";
+      nodePositionsRef.current.clear();
       return;
     }
 
@@ -79,9 +87,30 @@ export default function ProductionDependencyTree({
         ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
         : mapPlanToFlowMerged(plan.dependencyRootNodes, items, facilities);
 
-    setNodes(flowData.nodes as FlowProductionNode[]);
-    setEdges(flowData.edges);
-    layoutDoneRef.current = false;
+    // Generate structural signature
+    const newSignature = generateGraphSignature(flowData.nodes, flowData.edges);
+    const isStructuralChange = newSignature !== prevSignatureRef.current;
+
+    if (isStructuralChange) {
+      // Structural change: need to re-layout
+      setNodes(flowData.nodes as FlowProductionNode[]);
+      setEdges(flowData.edges);
+      layoutDoneRef.current = false;
+      prevSignatureRef.current = newSignature;
+    } else {
+      // Data-only change: preserve positions and re-apply edge styling
+      const nodesWithPositions = flowData.nodes.map((node) => {
+        const savedPosition = nodePositionsRef.current.get(node.id);
+        return savedPosition ? { ...node, position: savedPosition } : node;
+      }) as FlowProductionNode[];
+
+      // Apply edge styling with preserved node positions
+      const styledEdges = applyEdgeStyling(flowData.edges, nodesWithPositions);
+
+      setNodes(nodesWithPositions);
+      setEdges(styledEdges);
+      // Keep layoutDoneRef.current as true to skip re-layout
+    }
   }, [plan, items, facilities, visualizationMode, setNodes, setEdges]);
 
   useEffect(() => {
@@ -94,6 +123,11 @@ export default function ProductionDependencyTree({
         await getLayoutedElements(nodes, edges, "RIGHT");
 
       const styledEdges = applyEdgeStyling(layoutedEdges, layoutedNodes);
+
+      // Save node positions
+      layoutedNodes.forEach((node) => {
+        nodePositionsRef.current.set(node.id, node.position);
+      });
 
       setNodes(layoutedNodes as FlowProductionNode[]);
       setEdges(styledEdges);
@@ -150,4 +184,24 @@ export default function ProductionDependencyTree({
       </div>
     </div>
   );
+}
+
+/**
+ * Generates a structural signature for the graph based on nodes and edges.
+ * Only changes when nodes are added/removed or connections change.
+ * Does NOT change when node data (like targetRate) changes.
+ */
+function generateGraphSignature(
+  nodes: Array<{ id: string }>,
+  edges: Array<{ source: string; target: string }>,
+): string {
+  const nodeIds = nodes
+    .map((n) => n.id)
+    .sort()
+    .join(",");
+  const edgeConnections = edges
+    .map((e) => `${e.source}->${e.target}`)
+    .sort()
+    .join(";");
+  return `nodes:${nodeIds}|edges:${edgeConnections}`;
 }
