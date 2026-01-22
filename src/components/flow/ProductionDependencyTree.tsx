@@ -64,9 +64,7 @@ export default function ProductionDependencyTree({
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const nodesInitialized = useNodesInitialized();
-  const layoutDoneRef = useRef(false);
-
-  // Track previous graph signature and node positions
+  const needsLayoutRef = useRef(true);
   const prevSignatureRef = useRef<string>("");
   const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(
     new Map(),
@@ -92,31 +90,34 @@ export default function ProductionDependencyTree({
     const isStructuralChange = newSignature !== prevSignatureRef.current;
 
     if (isStructuralChange) {
-      // Structural change: need to re-layout
+      const currentNodeIds = new Set(flowData.nodes.map((n) => n.id));
+      for (const id of nodePositionsRef.current.keys()) {
+        if (!currentNodeIds.has(id)) {
+          nodePositionsRef.current.delete(id);
+        }
+      }
+
       setNodes(flowData.nodes as FlowProductionNode[]);
       setEdges(flowData.edges);
-      layoutDoneRef.current = false;
+      needsLayoutRef.current = true;
       prevSignatureRef.current = newSignature;
     } else {
-      // Data-only change: preserve positions and re-apply edge styling
       const nodesWithPositions = flowData.nodes.map((node) => {
         const savedPosition = nodePositionsRef.current.get(node.id);
         return savedPosition ? { ...node, position: savedPosition } : node;
       }) as FlowProductionNode[];
 
-      // Apply edge styling with preserved node positions
       const styledEdges = applyEdgeStyling(flowData.edges, nodesWithPositions);
 
       setNodes(nodesWithPositions);
       setEdges(styledEdges);
-      // Keep layoutDoneRef.current as true to skip re-layout
     }
   }, [plan, items, facilities, visualizationMode, setNodes, setEdges]);
 
   useEffect(() => {
-    if (!nodesInitialized || layoutDoneRef.current) return;
+    if (!nodesInitialized || !needsLayoutRef.current) return;
 
-    layoutDoneRef.current = true;
+    needsLayoutRef.current = false;
 
     (async () => {
       const { nodes: layoutedNodes, edges: layoutedEdges } =
@@ -124,7 +125,7 @@ export default function ProductionDependencyTree({
 
       const styledEdges = applyEdgeStyling(layoutedEdges, layoutedNodes);
 
-      // Save node positions
+      // Save node positions for future data-only updates
       layoutedNodes.forEach((node) => {
         nodePositionsRef.current.set(node.id, node.position);
       });
@@ -192,15 +193,15 @@ export default function ProductionDependencyTree({
  * Does NOT change when node data (like targetRate) changes.
  */
 function generateGraphSignature(
-  nodes: Array<{ id: string }>,
-  edges: Array<{ source: string; target: string }>,
+  nodes: Array<{ id: string; type?: string }>,
+  edges: Array<{ source: string; target: string; type?: string }>,
 ): string {
   const nodeIds = nodes
-    .map((n) => n.id)
+    .map((n) => `${n.id}:${n.type ?? "default"}`)
     .sort()
     .join(",");
   const edgeConnections = edges
-    .map((e) => `${e.source}->${e.target}`)
+    .map((e) => `${e.source}->${e.target}:${e.type ?? "default"}`)
     .sort()
     .join(";");
   return `nodes:${nodeIds}|edges:${edgeConnections}`;
