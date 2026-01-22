@@ -15,6 +15,7 @@ import type {
   VisualizationMode,
 } from "@/types";
 import type { ProductionLineData } from "./ProductionTable";
+import { ReactFlowProvider } from "@xyflow/react";
 
 interface ProductionViewTabsProps {
   plan: ProductionDependencyGraph | null;
@@ -95,12 +96,14 @@ export default function ProductionViewTabs({
               </div>
             </TabsContent>
             <TabsContent value="tree" className="h-full m-0">
-              <ProductionDependencyTree
-                plan={plan}
-                items={items}
-                facilities={facilities}
-                visualizationMode={visualizationMode}
-              />
+              <ReactFlowProvider>
+                <ProductionDependencyTree
+                  plan={plan}
+                  items={items}
+                  facilities={facilities}
+                  visualizationMode={visualizationMode}
+                />
+              </ReactFlowProvider>
             </TabsContent>
           </Tabs>
         </CardContent>

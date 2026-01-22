@@ -47,9 +47,6 @@ export const preloadLayoutEngine = () => {
 // Start preloading immediately when this utility module is imported
 preloadLayoutEngine();
 
-const nodeWidth = 220;
-const nodeHeight = 110;
-
 /**
  * Lays out React Flow elements using the ELK algorithm.
  * ELK provides better handling of hierarchy and complex cycles than Dagre.
@@ -80,11 +77,13 @@ export const getLayoutedElements = async (
       "elk.layered.unnecessaryBendpoints": "true",
       "org.eclipse.elk.padding": "[top=40,left=40,bottom=40,right=40]",
     },
-    children: nodes.map((node) => ({
-      id: node.id,
-      width: nodeWidth,
-      height: nodeHeight,
-    })),
+    children: nodes.map((node) => {
+      return {
+        id: node.id,
+        width: node.measured?.width,
+        height: node.measured?.height,
+      };
+    }),
     edges: edges.map((edge) => {
       const isBackward =
         edge.type === "backwardEdge" || edge.data?.direction === "backward";
