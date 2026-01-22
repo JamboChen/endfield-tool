@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import {
   ReactFlow,
   Controls,
@@ -8,6 +8,7 @@ import {
   useNodesState,
   useEdgesState,
   type Edge,
+  useNodesInitialized,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type {
@@ -62,40 +63,42 @@ export default function ProductionDependencyTree({
     [],
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const nodesInitialized = useNodesInitialized();
+  const layoutDoneRef = useRef(false);
 
   // Perform layout and styling asynchronously when plan or visualization mode changes
   useEffect(() => {
-    let isMounted = true;
+    if (!plan || plan.dependencyRootNodes.length === 0) {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
 
-    async function computeLayout() {
-      if (!plan || plan.dependencyRootNodes.length === 0) {
-        setNodes([]);
-        setEdges([]);
-        return;
-      }
+    const flowData =
+      visualizationMode === "separated"
+        ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
+        : mapPlanToFlowMerged(plan.dependencyRootNodes, items, facilities);
 
-      // Select mapper and pass plan for optimization data
-      const flowData =
-        visualizationMode === "separated"
-          ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
-          : mapPlanToFlowMerged(plan.dependencyRootNodes, items, facilities);
+    setNodes(flowData.nodes as FlowProductionNode[]);
+    setEdges(flowData.edges);
+    layoutDoneRef.current = false;
+  }, [plan, items, facilities, visualizationMode, setNodes, setEdges]);
+
+  useEffect(() => {
+    if (!nodesInitialized || layoutDoneRef.current) return;
+
+    layoutDoneRef.current = true;
+
+    (async () => {
       const { nodes: layoutedNodes, edges: layoutedEdges } =
-        await getLayoutedElements(flowData.nodes, flowData.edges, "RIGHT");
-
-      if (!isMounted) return;
+        await getLayoutedElements(nodes, edges, "RIGHT");
 
       const styledEdges = applyEdgeStyling(layoutedEdges, layoutedNodes);
 
       setNodes(layoutedNodes as FlowProductionNode[]);
       setEdges(styledEdges);
-    }
-
-    computeLayout();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [plan, items, facilities, visualizationMode, setNodes, setEdges]);
+    })();
+  }, [nodesInitialized, nodes, edges, setNodes, setEdges]);
 
   // Define custom node types for React Flow
   const nodeTypes: NodeTypes = useMemo(
