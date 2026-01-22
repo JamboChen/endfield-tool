@@ -29,6 +29,11 @@ i18n
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default
     },
+  })
+  .then(() => {
+    const lng = i18n.language;
+    if (lng === "zh" || lng === "zh-CN") i18n.changeLanguage("zh-Hans");
+    if (lng === "zh-TW") i18n.changeLanguage("zh-Hant");
   });
 
 export default i18n;
