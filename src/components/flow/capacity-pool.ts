@@ -21,6 +21,14 @@ export class CapacityPoolManager {
   }
 
   /**
+   * Checks if a capacity pool exists for the given node key.
+   * Used for defensive checks before allocation.
+   */
+  hasPool(nodeKey: string): boolean {
+    return this.pools.has(nodeKey);
+  }
+
+  /**
    * Creates a capacity pool for a production node by splitting it into individual facilities.
    * Each facility gets its own capacity. The last facility may operate at partial capacity
    * if the original facilityCount was fractional.
@@ -66,7 +74,7 @@ export class CapacityPoolManager {
   allocate(nodeKey: string, demandRate: number): AllocationResult[] {
     const pool = this.pools.get(nodeKey);
     if (!pool) {
-      console.warn(`Capacity pool not found for key: ${nodeKey}`);
+      console.warn(`[CapacityPoolManager] Pool not found for key: ${nodeKey}`);
       return [];
     }
 
@@ -90,7 +98,7 @@ export class CapacityPoolManager {
 
     if (remainingDemand > 0.001) {
       console.warn(
-        `Insufficient capacity for ${nodeKey}: ${remainingDemand.toFixed(2)} /min unsatisfied`,
+        `[CapacityPoolManager] Insufficient capacity for ${nodeKey}: ${remainingDemand.toFixed(2)}/min unsatisfied`,
       );
     }
 
@@ -112,7 +120,8 @@ export class CapacityPoolManager {
   }
 
   /**
-   * Checks if a facility has been processed.
+   * Checks if a facility instance has been processed.
+   * Returns true if the facility's node and upstream dependencies have been created.
    */
   isProcessed(facilityId: string): boolean {
     return this.processedFacilities.has(facilityId);

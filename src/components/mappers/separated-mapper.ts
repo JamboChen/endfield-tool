@@ -117,6 +117,38 @@ export function mapPlanToFlowSeparated(
     }
   });
 
+  function ensureRawMaterialNode(
+    itemId: ItemId,
+    nodeKey: string,
+    totalDemand: number,
+    node: ProductionNode,
+  ): string {
+    let rawNodeId = rawMaterialNodes.get(itemId);
+
+    if (!rawNodeId) {
+      rawNodeId = createFlowNodeId(nodeKey);
+      rawMaterialNodes.set(itemId, rawNodeId);
+
+      flowNodes.push(
+        createProductionFlowNode(
+          rawNodeId,
+          {
+            ...node,
+            targetRate: totalDemand,
+            facilityCount: 0,
+          },
+          items,
+          facilities,
+          {
+            isDirectTarget: false,
+          },
+        ),
+      );
+    }
+
+    return rawNodeId;
+  }
+
   function allocateUpstream(
     node: ProductionNode,
     demandRate: number,
@@ -127,46 +159,43 @@ export function mapPlanToFlowSeparated(
         node.item.id,
         aggregatedNodes,
       );
-      if (productionKey) {
-        const aggregatedData = aggregatedNodes.get(productionKey)!;
-        allocateFromPool(
-          productionKey,
-          aggregatedData.node,
-          demandRate,
-          consumerFacilityId,
-          "backward",
+
+      if (!productionKey) {
+        console.error(
+          `Circular dependency: no production key found for ${node.item.id}`,
         );
+        return;
       }
+
+      const aggregatedData = aggregatedNodes.get(productionKey);
+      if (!aggregatedData) {
+        console.error(
+          `Circular dependency: no aggregated data for ${productionKey}`,
+        );
+        return;
+      }
+
+      allocateFromPool(
+        productionKey,
+        aggregatedData.node,
+        demandRate,
+        consumerFacilityId,
+        "backward",
+      );
       return;
     }
 
     if (node.isRawMaterial) {
       const nodeKey = createFlowNodeKey(node);
-      let rawNodeId = rawMaterialNodes.get(node.item.id);
+      const aggregatedData = aggregatedNodes.get(nodeKey);
+      const totalDemand = aggregatedData ? aggregatedData.totalRate : 0;
 
-      if (!rawNodeId) {
-        rawNodeId = createFlowNodeId(nodeKey);
-        rawMaterialNodes.set(node.item.id, rawNodeId);
-
-        const aggregatedData = aggregatedNodes.get(nodeKey);
-        const totalDemand = aggregatedData ? aggregatedData.totalRate : 0;
-
-        flowNodes.push(
-          createProductionFlowNode(
-            rawNodeId,
-            {
-              ...node,
-              targetRate: totalDemand,
-              facilityCount: 0,
-            },
-            items,
-            facilities,
-            {
-              isDirectTarget: false,
-            },
-          ),
-        );
-      }
+      const rawNodeId = ensureRawMaterialNode(
+        node.item.id,
+        nodeKey,
+        totalDemand,
+        node,
+      );
 
       edges.push(
         createEdge(
@@ -190,6 +219,13 @@ export function mapPlanToFlowSeparated(
     consumerFacilityId: string,
     edgeDirection?: "backward",
   ): void {
+    if (!poolManager.hasPool(nodeKey)) {
+      console.warn(
+        `Pool not found for ${nodeKey}, creating on-demand (this should not happen)`,
+      );
+      poolManager.createPool(node, nodeKey);
+    }
+
     const allocations = poolManager.allocate(nodeKey, demandRate);
 
     allocations.forEach((allocation) => {
@@ -203,7 +239,6 @@ export function mapPlanToFlowSeparated(
         ),
       );
 
-      // If this facility hasn't been processed yet, create its node and process dependencies
       if (!poolManager.isProcessed(allocation.sourceNodeId)) {
         poolManager.markProcessed(allocation.sourceNodeId);
 
@@ -258,44 +293,21 @@ export function mapPlanToFlowSeparated(
     });
   }
 
-  // Main loop: process each root node
   rootNodes.forEach((rootNode) => {
     const key = createFlowNodeKey(rootNode);
 
-    // Skip all non-raw-material targets - they'll be handled as target sinks
-    if (rootNode.isTarget && !rootNode.isRawMaterial) return;
+    const shouldSkip = rootNode.isTarget && !rootNode.isRawMaterial;
+    if (shouldSkip) return;
 
     if (rootNode.isRawMaterial) {
-      // Handle raw material targets
       const nodeKey = createFlowNodeKey(rootNode);
-      const rawNodeId = createFlowNodeId(nodeKey);
+      const aggregatedData = aggregatedNodes.get(nodeKey);
+      const totalDemand = aggregatedData
+        ? aggregatedData.totalRate
+        : rootNode.targetRate;
 
-      if (!rawMaterialNodes.has(rootNode.item.id)) {
-        rawMaterialNodes.set(rootNode.item.id, rawNodeId);
-
-        const aggregatedData = aggregatedNodes.get(nodeKey);
-        const totalDemand = aggregatedData
-          ? aggregatedData.totalRate
-          : rootNode.targetRate;
-
-        flowNodes.push(
-          createProductionFlowNode(
-            rawNodeId,
-            {
-              ...rootNode,
-              targetRate: totalDemand,
-            },
-            items,
-            facilities,
-            {
-              isDirectTarget: rootNode.isTarget,
-              directTargetRate: rootNode.isTarget ? totalDemand : undefined,
-            },
-          ),
-        );
-      }
+      ensureRawMaterialNode(rootNode.item.id, nodeKey, totalDemand, rootNode);
     } else {
-      // Create production facilities and allocate their dependencies
       const facilityInstances = poolManager.getFacilityInstances(key);
 
       facilityInstances.forEach((facilityInstance) => {
@@ -351,6 +363,7 @@ export function mapPlanToFlowSeparated(
 
   allTargetsList.forEach(([, data]) => {
     const targetSinkId = createTargetSinkId(data.node.item.id);
+
     const isRawMaterialTarget = data.node.isRawMaterial;
 
     const productionInfo = !isRawMaterialTarget
