@@ -35,8 +35,6 @@ type ProductionMaps = {
   facilityMap: Map<FacilityId, Facility>;
 };
 
-// ============ Internal Data Structures ============
-
 type ItemNode = {
   itemId: ItemId;
   item: Item;
@@ -463,29 +461,29 @@ function solveSCCFlow(
   const externalDemands = new Map<ItemId, number>();
 
   scc.items.forEach((itemId) => {
-    let externalDemand = 0;
-
-    const targetDemand = itemDemands.get(itemId) || 0;
-    externalDemand += targetDemand;
+    let demand = 0;
 
     const consumers = graph.itemConsumedBy.get(itemId);
     if (consumers) {
-      consumers.forEach((consumerRecipeId) => {
-        if (!scc.recipes.has(consumerRecipeId)) {
-          const facilityCount = recipeFacilityCounts.get(consumerRecipeId) || 0;
-          const recipe = maps.recipeMap.get(consumerRecipeId)!;
-          const input = recipe.inputs.find((inp) => inp.itemId === itemId);
+      consumers.forEach((recipeId) => {
+        if (!scc.recipes.has(recipeId)) {
+          const facilityCount = recipeFacilityCounts.get(recipeId) || 0;
+          const recipe = maps.recipeMap.get(recipeId)!;
+          const input = recipe.inputs.find((i) => i.itemId === itemId);
           if (input) {
-            const demand =
+            demand +=
               calcRate(input.amount, recipe.craftingTime) * facilityCount;
-            externalDemand += demand;
           }
         }
       });
     }
 
-    if (externalDemand > 0) {
-      externalDemands.set(itemId, externalDemand);
+    if (graph.targets.has(itemId)) {
+      demand += itemDemands.get(itemId) || 0;
+    }
+
+    if (demand > 0) {
+      externalDemands.set(itemId, demand);
     }
   });
 
