@@ -57,13 +57,13 @@ const ItemIcon = memo(({ item }: { item: Item }) => {
       <img
         src={item.iconUrl}
         alt={itemName}
-        className="h-3 w-3 object-contain inline-block"
+        className="h-8 w-8 object-contain inline-block"
       />
     );
   }
 
   return (
-    <span className="inline-block w-3 h-3 bg-muted rounded text-[7px] text-center leading-3">
+    <span className="inline-block w-8 h-8 bg-muted rounded text-[7px] text-center leading-3">
       ?
     </span>
   );
@@ -98,7 +98,7 @@ const RecipeIOCompact = memo(
                 className="inline-flex items-center gap-0.5"
               >
                 {item && <ItemIcon item={item} />}
-                <span className="text-[10px]">×{ri.amount}</span>
+                <span className="text-[15px]">×{ri.amount}</span>
                 {idx < displayed.length - 1 && (
                   <span className="text-muted-foreground mx-0.5">+</span>
                 )}
@@ -119,7 +119,7 @@ const RecipeIOCompact = memo(
         {renderItems(recipe.inputs, maxDisplay)}
         <span className="text-muted-foreground mx-0.5">→</span>
         {renderItems(recipe.outputs, maxDisplay)}
-        <span className="text-[10px] text-muted-foreground ml-0.5">
+        <span className="text-[13px] text-muted-foreground ml-0.5">
           ({recipe.craftingTime}s)
         </span>
       </div>
@@ -351,15 +351,15 @@ const ProductionTable = memo(function ProductionTable({
                     className={[
                       "p-2 relative",
                       line.isTarget &&
-                      "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-amber-500",
+                        "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-amber-500",
                       isManualRaw &&
-                      "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-blue-500",
+                        "before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-blue-500",
                       isHovered &&
-                      "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-blue-500 after:shadow-[0_0_8px_rgba(59,130,246,0.5)]",
+                        "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-blue-500 after:shadow-[0_0_8px_rgba(59,130,246,0.5)]",
                       isDependency &&
-                      !line.isTarget &&
-                      !isManualRaw &&
-                      "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-green-500 after:shadow-[0_0_6px_rgba(34,197,94,0.4)]",
+                        !line.isTarget &&
+                        !isManualRaw &&
+                        "after:absolute after:left-0 after:top-0 after:h-full after:w-1 after:bg-green-500 after:shadow-[0_0_6px_rgba(34,197,94,0.4)]",
                     ]
                       .filter(Boolean)
                       .join(" ")}
@@ -369,10 +369,10 @@ const ProductionTable = memo(function ProductionTable({
                         <img
                           src={line.item.iconUrl}
                           alt={getItemName(line.item)}
-                          className="h-8 w-8 object-contain flex-shrink-0"
+                          className="h-8 w-8 object-contain shrink-0"
                         />
                       ) : (
-                        <div className="h-8 w-8 bg-muted rounded flex items-center justify-center flex-shrink-0">
+                        <div className="h-8 w-8 bg-muted rounded flex items-center justify-center shrink-0">
                           <span className="text-[10px]">📦</span>
                         </div>
                       )}
