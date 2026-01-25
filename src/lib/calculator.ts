@@ -136,7 +136,6 @@ function buildBipartiteGraph(
       return;
     }
 
-    // Find available recipes
     const availableRecipes = Array.from(maps.recipeMap.values()).filter((r) =>
       r.outputs.some((o) => o.itemId === itemId),
     );
@@ -147,7 +146,6 @@ function buildBipartiteGraph(
       return;
     }
 
-    // Select recipe
     const selectedRecipe = recipeOverrides?.has(itemId)
       ? getOrThrow(
           maps.recipeMap,
@@ -162,7 +160,6 @@ function buildBipartiteGraph(
       "Facility",
     );
 
-    // Create recipe node if not exists
     if (!graph.recipeNodes.has(selectedRecipe.id)) {
       graph.recipeNodes.set(selectedRecipe.id, {
         recipeId: selectedRecipe.id,
@@ -175,10 +172,10 @@ function buildBipartiteGraph(
       graph.recipeInputs.set(selectedRecipe.id, new Set());
     }
 
-    // Build edges: Item → Recipe (produce edge)
+    // Item → Recipe (consume edge: recipe consumes item)
     graph.itemProducedBy.set(itemId, selectedRecipe.id);
 
-    // Build edges: Recipe → Item (consume edges)
+    // Recipe → Item (produce edge: recipe produces item)
     selectedRecipe.inputs.forEach((input) => {
       graph.recipeInputs.get(selectedRecipe.id)!.add(input.itemId);
 
@@ -187,7 +184,6 @@ function buildBipartiteGraph(
       }
       graph.itemConsumedBy.get(input.itemId)!.add(selectedRecipe.id);
 
-      // Recursive traverse
       traverse(input.itemId);
     });
   }
@@ -214,24 +210,22 @@ function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
     stack.push(nodeId);
     onStack.add(nodeId);
 
-    // Get successors based on physical flow
     const successors: Array<[string, "item" | "recipe"]> = [];
 
     if (nodeType === "item") {
-      // Item → Recipe (produce edge)
-      const producerRecipe = graph.itemProducedBy.get(nodeId as ItemId);
-      if (producerRecipe) {
-        successors.push([producerRecipe, "recipe"]);
+      const consumerRecipes = graph.itemConsumedBy.get(nodeId as ItemId);
+      if (consumerRecipes) {
+        consumerRecipes.forEach((recipeId) => {
+          successors.push([recipeId, "recipe"]);
+        });
       }
     } else {
-      // Recipe → Items (consume edges)
-      const inputs = graph.recipeInputs.get(nodeId as RecipeId) || new Set();
-      inputs.forEach((itemId) => {
-        successors.push([itemId, "item"]);
-      });
+      const outputItem = graph.recipeOutput.get(nodeId as RecipeId);
+      if (outputItem) {
+        successors.push([outputItem, "item"]);
+      }
     }
 
-    // Visit successors
     successors.forEach(([succId, succType]) => {
       if (!indices.has(succId)) {
         strongConnect(succId, succType);
@@ -247,7 +241,6 @@ function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
       }
     });
 
-    // Found SCC root
     if (lowlinks.get(nodeId) === indices.get(nodeId)) {
       const sccItems = new Set<ItemId>();
       const sccRecipes = new Set<RecipeId>();
@@ -264,11 +257,9 @@ function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
         }
       } while (w !== nodeId);
 
-      // Only record if it's a real cycle: total nodes > 1
       if (sccItems.size + sccRecipes.size > 1) {
         const externalInputs = new Set<ItemId>();
 
-        // Find external inputs
         sccRecipes.forEach((recipeId) => {
           const inputs = graph.recipeInputs.get(recipeId) || new Set();
           inputs.forEach((inputItemId) => {
@@ -288,7 +279,6 @@ function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
     }
   }
 
-  // Run Tarjan from all item nodes
   graph.itemNodes.forEach((_, itemId) => {
     if (!indices.has(itemId)) {
       strongConnect(itemId, "item");
@@ -314,7 +304,6 @@ function buildCondensedDAGAndSort(
   const condensedNodes = new Map<string, CondensedNode>();
   const condensedEdges = new Map<string, Set<string>>();
 
-  // Create condensed nodes
   sccs.forEach((scc) => {
     condensedNodes.set(scc.id, { type: "scc", scc });
     condensedEdges.set(scc.id, new Set());
@@ -334,7 +323,6 @@ function buildCondensedDAGAndSort(
     }
   });
 
-  // Build condensed edges
   const addEdge = (fromId: string, toId: string) => {
     const fromCondensed = nodeToSCC.get(fromId) || fromId;
     const toCondensed = nodeToSCC.get(toId) || toId;
@@ -344,19 +332,18 @@ function buildCondensedDAGAndSort(
     }
   };
 
-  // Add edges: Item → Recipe
-  graph.itemProducedBy.forEach((recipeId, itemId) => {
-    addEdge(itemId, recipeId);
-  });
-
-  // Add edges: Recipe → Items
-  graph.recipeInputs.forEach((inputs, recipeId) => {
-    inputs.forEach((itemId) => {
-      addEdge(recipeId, itemId);
+  // Item consumes Recipe (Item → Recipe edge: item is consumed by recipe)
+  graph.itemConsumedBy.forEach((recipeIds, itemId) => {
+    recipeIds.forEach((recipeId) => {
+      addEdge(itemId, recipeId);
     });
   });
 
-  // Topological sort (reversed: targets first)
+  // Recipe produces Item (Recipe → Item edge: recipe produces item)
+  graph.recipeOutput.forEach((itemId, recipeId) => {
+    addEdge(recipeId, itemId);
+  });
+
   const inDegree = new Map<string, number>();
   condensedNodes.forEach((_, nodeId) => {
     inDegree.set(nodeId, 0);
@@ -388,8 +375,11 @@ function buildCondensedDAGAndSort(
     });
   }
 
-  // Reverse to get targets → raw materials order
-  return topoOrder.reverse();
+  console.log(
+    `[Topo] Order: ${topoOrder.map((n) => (n.type === "item" ? n.itemId : n.type === "recipe" ? n.recipeId : n.scc.id)).join(" → ")}`,
+  );
+
+  return topoOrder;
 }
 
 // ============ Phase 4: Calculate Flows ============
@@ -398,31 +388,42 @@ function calculateFlows(
   graph: BipartiteGraph,
   condensedOrder: CondensedNode[],
   targetRates: Map<ItemId, number>,
+  maps: ProductionMaps,
 ): FlowData {
   const itemDemands = new Map<ItemId, number>();
   const recipeFacilityCounts = new Map<RecipeId, number>();
 
-  // Initialize target demands
   targetRates.forEach((rate, itemId) => {
     itemDemands.set(itemId, rate);
     console.log(`[calculateFlows] Init target: ${itemId} = ${rate}`);
   });
 
-  // Process in reverse topological order
-  condensedOrder.forEach((node) => {
+  const reversedOrder = condensedOrder.reverse();
+
+  reversedOrder.forEach((node) => {
     if (node.type === "scc") {
       console.log(`[calculateFlows] Processing SCC: ${node.scc.id}`);
-      solveSCCFlow(node.scc, graph, itemDemands, recipeFacilityCounts);
+      solveSCCFlow(node.scc, graph, itemDemands, recipeFacilityCounts, maps);
     } else if (node.type === "recipe") {
       const recipeData = graph.recipeNodes.get(node.recipeId)!;
-      const outputItemId = recipeData.outputItemId;
-      const outputDemand = itemDemands.get(outputItemId) || 0;
+      const recipe = recipeData.recipe;
 
-      const outputAmount = recipeData.recipe.outputs.find(
-        (o) => o.itemId === outputItemId,
-      )!.amount;
-      const outputRate = calcRate(outputAmount, recipeData.recipe.craftingTime);
-      const facilityCount = outputDemand / outputRate;
+      let primaryOutputItemId: ItemId | null = null;
+      let primaryOutputRate = 0;
+
+      recipe.outputs.forEach((output) => {
+        const rate = calcRate(output.amount, recipe.craftingTime);
+        if (rate > primaryOutputRate) {
+          primaryOutputRate = rate;
+          primaryOutputItemId = output.itemId;
+        }
+      });
+
+      const outputDemand = primaryOutputItemId
+        ? itemDemands.get(primaryOutputItemId) || 0
+        : 0;
+      const facilityCount =
+        primaryOutputRate > 0 ? outputDemand / primaryOutputRate : 0;
 
       recipeFacilityCounts.set(node.recipeId, facilityCount);
 
@@ -430,11 +431,9 @@ function calculateFlows(
         `[calculateFlows] Recipe ${node.recipeId}: outputDemand=${outputDemand}, facilityCount=${facilityCount}`,
       );
 
-      // Push demands to inputs
-      recipeData.recipe.inputs.forEach((input) => {
+      recipe.inputs.forEach((input) => {
         const inputDemand =
-          calcRate(input.amount, recipeData.recipe.craftingTime) *
-          facilityCount;
+          calcRate(input.amount, recipe.craftingTime) * facilityCount;
         itemDemands.set(
           input.itemId,
           (itemDemands.get(input.itemId) || 0) + inputDemand,
@@ -463,42 +462,60 @@ function solveSCCFlow(
   graph: BipartiteGraph,
   itemDemands: Map<ItemId, number>,
   recipeFacilityCounts: Map<RecipeId, number>,
+  maps: ProductionMaps,
 ) {
   const externalDemands = new Map<ItemId, number>();
 
-  // Collect external demands for each item in SCC
   scc.items.forEach((itemId) => {
-    const demand = itemDemands.get(itemId) || 0;
-    if (demand > 0) {
-      externalDemands.set(itemId, demand);
+    let externalDemand = 0;
+
+    const targetDemand = itemDemands.get(itemId) || 0;
+    externalDemand += targetDemand;
+
+    const consumers = graph.itemConsumedBy.get(itemId);
+    if (consumers) {
+      consumers.forEach((consumerRecipeId) => {
+        if (!scc.recipes.has(consumerRecipeId)) {
+          const facilityCount = recipeFacilityCounts.get(consumerRecipeId) || 0;
+          const recipe = maps.recipeMap.get(consumerRecipeId)!;
+          const input = recipe.inputs.find((inp) => inp.itemId === itemId);
+          if (input) {
+            const demand =
+              calcRate(input.amount, recipe.craftingTime) * facilityCount;
+            externalDemand += demand;
+            console.log(
+              `[SCC External] item=${itemId} from recipe=${consumerRecipeId}: +${demand}`,
+            );
+          }
+        }
+      });
+    }
+
+    if (externalDemand > 0) {
+      externalDemands.set(itemId, externalDemand);
     }
   });
 
   if (externalDemands.size === 0) return;
 
-  // Build linear system: A * x = b
   const itemsList = Array.from(scc.items);
   const recipesList = Array.from(scc.recipes).map(
-    (rid) => graph.recipeNodes.get(rid)!.recipe,
+    (rid) => maps.recipeMap.get(rid)!,
   );
 
   const n = itemsList.length;
+  const m = recipesList.length;
 
-  if (recipesList.length !== n) {
-    console.warn(
-      `SCC ${scc.id} has ${n} items but ${recipesList.length} recipes`,
-    );
-    return;
-  }
+  console.log(`[SCC Solve] ${scc.id}: n=${n} items, m=${m} recipes`);
 
   const matrix: number[][] = [];
   const constants: number[] = [];
 
   for (let i = 0; i < n; i++) {
     const itemId = itemsList[i];
-    const row = new Array(n).fill(0);
+    const row = new Array(m).fill(0);
 
-    for (let j = 0; j < n; j++) {
+    for (let j = 0; j < m; j++) {
       const recipe = recipesList[j];
       const output =
         recipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
@@ -521,30 +538,23 @@ function solveSCCFlow(
     return;
   }
 
-  // Update facility counts
-  for (let i = 0; i < n; i++) {
-    if (solution[i] < -1e-9) {
-      console.warn(`Negative facility count in SCC ${scc.id}`);
-      return;
-    }
-    recipeFacilityCounts.set(recipesList[i].id, Math.max(0, solution[i]));
+  for (let j = 0; j < m; j++) {
+    const facilityCount = Math.max(0, solution[j]);
+    recipeFacilityCounts.set(recipesList[j].id, facilityCount);
+    console.log(`[SCC Solve] Recipe ${recipesList[j].id} = ${facilityCount}`);
   }
 
-  // Push demands to external inputs
   scc.externalInputs.forEach((inputItemId) => {
     let totalConsumption = 0;
 
     scc.recipes.forEach((recipeId) => {
-      const recipeData = graph.recipeNodes.get(recipeId)!;
+      const recipe = maps.recipeMap.get(recipeId)!;
       const facilityCount = recipeFacilityCounts.get(recipeId) || 0;
-      const input = recipeData.recipe.inputs.find(
-        (i) => i.itemId === inputItemId,
-      );
+      const input = recipe.inputs.find((i) => i.itemId === inputItemId);
 
       if (input) {
         totalConsumption +=
-          calcRate(input.amount, recipeData.recipe.craftingTime) *
-          facilityCount;
+          calcRate(input.amount, recipe.craftingTime) * facilityCount;
       }
     });
 
@@ -735,7 +745,6 @@ export function calculateProductionPlan(
     facilityMap: new Map(facilities.map((f) => [f.id, f])),
   };
 
-  // Phase 1: Build bipartite graph
   const graph = buildBipartiteGraph(
     targets,
     maps,
@@ -744,17 +753,13 @@ export function calculateProductionPlan(
     manualRawMaterials,
   );
 
-  // Phase 2: Detect SCCs
   const sccs = detectSCCs(graph);
 
-  // Phase 3: Build condensed DAG and topological sort
   const condensedOrder = buildCondensedDAGAndSort(graph, sccs);
 
-  // Phase 4: Calculate flows
   const targetRatesMap = new Map(targets.map((t) => [t.itemId, t.rate]));
-  const flowData = calculateFlows(graph, condensedOrder, targetRatesMap);
+  const flowData = calculateFlows(graph, condensedOrder, targetRatesMap, maps);
 
-  // Phase 5: Convert to ProductionNode tree (for UI compatibility)
   const { rootNodes, detectedCycles } = convertToProductionNodeTree(
     graph,
     flowData,
