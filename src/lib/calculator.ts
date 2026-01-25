@@ -578,7 +578,12 @@ function convertToProductionNodeTree(
     const item = getOrThrow(maps.itemMap, itemId, "Item");
     const demand = parentDemand ?? flowData.itemDemands.get(itemId) ?? 0;
 
+    console.log(
+      `[buildNode] itemId=${itemId}, parentDemand=${parentDemand}, isDirectTarget=${isDirectTarget}, demand=${demand}`,
+    );
+
     if (visitedPath.has(itemId)) {
+      console.log(`[buildNode] Cycle detected: ${itemId}`);
       return {
         item,
         targetRate: demand,
@@ -596,6 +601,7 @@ function convertToProductionNodeTree(
     const itemNode = graph.itemNodes.get(itemId);
 
     if (!itemNode || itemNode.isRawMaterial) {
+      console.log(`[buildNode] Raw material: ${itemId}`);
       return {
         item,
         targetRate: demand,
@@ -610,6 +616,7 @@ function convertToProductionNodeTree(
 
     const producerRecipeId = graph.itemProducedBy.get(itemId);
     if (!producerRecipeId) {
+      console.log(`[buildNode] No producer: ${itemId}`);
       return {
         item,
         targetRate: demand,
@@ -626,25 +633,36 @@ function convertToProductionNodeTree(
     const facilityCount =
       flowData.recipeFacilityCounts.get(producerRecipeId) || 0;
 
+    console.log(
+      `[buildNode] producerRecipe=${producerRecipeId}, facilityCount=${facilityCount}`,
+    );
+
     const newVisitedPath = new Set(visitedPath);
     newVisitedPath.add(itemId);
 
     const dependencies = recipeData.recipe.inputs.map((input) => {
       const inputDemand =
         calcRate(input.amount, recipeData.recipe.craftingTime) * facilityCount;
+      console.log(
+        `[buildNode] Building dependency: ${input.itemId}, inputDemand=${inputDemand}`,
+      );
       return buildNode(input.itemId, newVisitedPath, false, inputDemand);
     });
 
+    const calculatedRate =
+      calcRate(
+        recipeData.recipe.outputs.find((o) => o.itemId === itemId)!.amount,
+        recipeData.recipe.craftingTime,
+      ) * facilityCount;
+
     const nodeTargetRate =
-      parentDemand !== undefined
+      isDirectTarget && parentDemand !== undefined
         ? parentDemand
-        : isDirectTarget
-          ? demand
-          : calcRate(
-              recipeData.recipe.outputs.find((o) => o.itemId === itemId)!
-                .amount,
-              recipeData.recipe.craftingTime,
-            ) * facilityCount;
+        : calculatedRate;
+
+    console.log(
+      `[buildNode] ${itemId}: calculatedRate=${calculatedRate}, nodeTargetRate=${nodeTargetRate}`,
+    );
 
     return {
       item,
