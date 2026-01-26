@@ -79,8 +79,6 @@ type FlowData = {
   recipeFacilityCounts: Map<RecipeId, number>;
 };
 
-// ============ Helper Functions ============
-
 const getOrThrow = <K, V>(map: Map<K, V>, key: K, type: string): V => {
   const value = map.get(key);
   if (!value) throw new Error(`${type} not found: ${key}`);
@@ -186,8 +184,6 @@ function buildBipartiteGraph(
   return graph;
 }
 
-// ============ Phase 2: Detect SCCs (Tarjan's Algorithm) ============
-
 function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
   const sccs: SCCInfo[] = [];
   const indices = new Map<string, number>();
@@ -281,8 +277,6 @@ function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
   return sccs;
 }
 
-// ============ Phase 3: Build Condensed DAG + Topo Sort ============
-
 function buildCondensedDAGAndSort(
   graph: BipartiteGraph,
   sccs: SCCInfo[],
@@ -369,8 +363,6 @@ function buildCondensedDAGAndSort(
   return topoOrder;
 }
 
-// ============ Phase 4: Calculate Flows ============
-
 function calculateFlows(
   graph: BipartiteGraph,
   condensedOrder: CondensedNode[],
@@ -382,14 +374,12 @@ function calculateFlows(
 
   targetRates.forEach((rate, itemId) => {
     itemDemands.set(itemId, rate);
-    console.log(`[calculateFlows] Init target: ${itemId} = ${rate}`);
   });
 
   const reversedOrder = condensedOrder.reverse();
 
   reversedOrder.forEach((node) => {
     if (node.type === "scc") {
-      console.log(`[calculateFlows] Processing SCC: ${node.scc.id}`);
       solveSCCFlow(node.scc, graph, itemDemands, recipeFacilityCounts, maps);
     } else if (node.type === "recipe") {
       const recipeData = graph.recipeNodes.get(node.recipeId)!;
@@ -404,10 +394,6 @@ function calculateFlows(
 
       recipeFacilityCounts.set(node.recipeId, facilityCount);
 
-      console.log(
-        `[calculateFlows] Recipe ${node.recipeId}: outputDemand=${outputDemand}, facilityCount=${facilityCount}`,
-      );
-
       recipe.inputs.forEach((input) => {
         const inputDemand =
           calcRate(input.amount, recipe.craftingTime) * facilityCount;
@@ -415,21 +401,9 @@ function calculateFlows(
           input.itemId,
           (itemDemands.get(input.itemId) || 0) + inputDemand,
         );
-        console.log(
-          `[calculateFlows] Recipe ${node.recipeId} -> input ${input.itemId}: +${inputDemand} = ${itemDemands.get(input.itemId)}`,
-        );
       });
     }
   });
-
-  console.log(
-    "[calculateFlows] Final itemDemands:",
-    Array.from(itemDemands.entries()),
-  );
-  console.log(
-    "[calculateFlows] Final recipeFacilityCounts:",
-    Array.from(recipeFacilityCounts.entries()),
-  );
 
   return { itemDemands, recipeFacilityCounts };
 }
@@ -539,8 +513,6 @@ function solveSCCFlow(
     }
   });
 }
-
-// ============ Phase 5: Convert to ProductionNode Tree ============
 
 function buildProductionGraph(
   graph: BipartiteGraph,
