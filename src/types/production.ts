@@ -1,4 +1,4 @@
-import type { Item, Recipe, Facility, ItemId } from "@/types";
+import type { Item, Recipe, Facility, ItemId, RecipeId } from "@/types";
 
 /**
  * Represents a single step in the production chain.
@@ -31,11 +31,26 @@ export type DetectedCycle = {
   netOutputs: Map<ItemId, number>;
 };
 
-/**
- * Core production dependency graph with cycle detection.
- */
+export type ProductionGraphNode =
+  | {
+      type: "item";
+      itemId: ItemId;
+      item: Item;
+      productionRate: number;
+      isRawMaterial: boolean;
+      isTarget: boolean;
+    }
+  | {
+      type: "recipe";
+      recipeId: RecipeId;
+      recipe: Recipe;
+      facility: Facility;
+      facilityCount: number;
+    };
+
 export type ProductionDependencyGraph = {
-  dependencyRootNodes: ProductionNode[];
+  nodes: Map<string, ProductionGraphNode>;
+  edges: Array<{ from: string; to: string }>;
+  targets: Set<ItemId>;
   detectedCycles: DetectedCycle[];
-  keyToLevel?: Map<string, number>;
 };

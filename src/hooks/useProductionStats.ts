@@ -1,11 +1,5 @@
 import { useMemo } from "react";
-import type {
-  ProductionDependencyGraph,
-  ItemId,
-  ProductionNode,
-  FacilityId,
-} from "@/types";
-import { createNodeKey } from "@/lib/node-keys";
+import type { ProductionDependencyGraph, ItemId, FacilityId } from "@/types";
 
 export type ProductionStats = {
   totalPowerConsumption: number;
@@ -15,41 +9,34 @@ export type ProductionStats = {
 };
 
 /**
- * Traverses the production tree and collects statistics.
+ * Collects statistics from the production graph.
  */
 function collectStats(
-  rootNodes: ProductionNode[],
+  plan: ProductionDependencyGraph,
   manualRawMaterials: Set<ItemId>,
 ): ProductionStats {
   let totalPower = 0;
   const rawMaterials = new Map<ItemId, number>();
   const facilityRequirements = new Map<FacilityId, number>();
-  const processedNodes = new Set<string>();
+  let uniqueProductionSteps = 0;
 
-  const traverse = (node: ProductionNode) => {
-    // Skip cycle placeholders
-    if (node.isCyclePlaceholder) {
-      node.dependencies.forEach(traverse);
-      return;
-    }
-
-    const key = createNodeKey(node);
-
-    // Track unique production steps (for counting)
-    if (!node.isRawMaterial && !manualRawMaterials.has(node.item.id)) {
-      processedNodes.add(key);
-    }
-
-    // Accumulate raw materials
-    if (node.isRawMaterial || manualRawMaterials.has(node.item.id)) {
-      rawMaterials.set(
-        node.item.id,
-        (rawMaterials.get(node.item.id) || 0) + node.targetRate,
-      );
-    } else if (node.facility) {
+  plan.nodes.forEach((node) => {
+    if (node.type === "item") {
+      // Count raw materials
+      if (node.isRawMaterial || manualRawMaterials.has(node.itemId)) {
+        rawMaterials.set(
+          node.itemId,
+          (rawMaterials.get(node.itemId) || 0) + node.productionRate,
+        );
+      } else if (node.productionRate > 0) {
+        // Count unique production steps (items being produced)
+        uniqueProductionSteps++;
+      }
+    } else if (node.type === "recipe") {
       // Accumulate power consumption
       totalPower += node.facility.powerConsumption * node.facilityCount;
 
+      // Accumulate facility requirements
       if (node.facilityCount >= 0.01) {
         facilityRequirements.set(
           node.facility.id,
@@ -58,31 +45,25 @@ function collectStats(
         );
       }
     }
-
-    // Recursively traverse dependencies
-    node.dependencies.forEach(traverse);
-  };
-
-  rootNodes.forEach(traverse);
+  });
 
   return {
     totalPowerConsumption: totalPower,
     rawMaterialRequirements: rawMaterials,
-    uniqueProductionSteps: processedNodes.size,
+    uniqueProductionSteps,
     facilityRequirements,
   };
 }
 
 /**
  * Hook to calculate production statistics from the plan.
- * Handles all statistical aggregations needed for the summary panel.
  */
 export function useProductionStats(
   plan: ProductionDependencyGraph | null,
   manualRawMaterials: Set<ItemId>,
 ): ProductionStats {
   return useMemo(() => {
-    if (!plan || plan.dependencyRootNodes.length === 0) {
+    if (!plan || plan.nodes.size === 0) {
       return {
         totalPowerConsumption: 0,
         rawMaterialRequirements: new Map(),
@@ -91,6 +72,6 @@ export function useProductionStats(
       };
     }
 
-    return collectStats(plan.dependencyRootNodes, manualRawMaterials);
+    return collectStats(plan, manualRawMaterials);
   }, [plan, manualRawMaterials]);
 }

@@ -8,6 +8,7 @@ import type {
   ProductionNode,
   DetectedCycle,
   ProductionDependencyGraph,
+  ProductionGraphNode,
 } from "@/types";
 import { solveLinearSystem } from "./linear-solver";
 import { forcedRawMaterials } from "@/data";
@@ -45,7 +46,7 @@ type RecipeNodeData = {
   recipeId: RecipeId;
   recipe: Recipe;
   facility: Facility;
-  outputItemIds: Set<ItemId>;
+  outputItemId: ItemId;
 };
 
 type BipartiteGraph = {
@@ -56,7 +57,7 @@ type BipartiteGraph = {
   itemProducedBy: Map<ItemId, RecipeId>;
 
   recipeInputs: Map<RecipeId, Set<ItemId>>;
-  recipeOutput: Map<RecipeId, Set<ItemId>>;
+  recipeOutput: Map<RecipeId, ItemId>;
 
   targets: Set<ItemId>;
   rawMaterials: Set<ItemId>;
@@ -155,18 +156,14 @@ function buildBipartiteGraph(
     );
 
     if (!graph.recipeNodes.has(selectedRecipe.id)) {
-      const outputItemIds = new Set(
-        selectedRecipe.outputs.map((o) => o.itemId),
-      );
-
       graph.recipeNodes.set(selectedRecipe.id, {
         recipeId: selectedRecipe.id,
         recipe: selectedRecipe,
         facility,
-        outputItemIds,
+        outputItemId: itemId,
       });
 
-      graph.recipeOutput.set(selectedRecipe.id, outputItemIds);
+      graph.recipeOutput.set(selectedRecipe.id, itemId);
       graph.recipeInputs.set(selectedRecipe.id, new Set());
     }
 
@@ -216,11 +213,9 @@ function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
         });
       }
     } else {
-      const outputItems = graph.recipeOutput.get(nodeId as RecipeId);
-      if (outputItems) {
-        outputItems.forEach((itemId) => {
-          successors.push([itemId, "item"]);
-        });
+      const outputItem = graph.recipeOutput.get(nodeId as RecipeId);
+      if (outputItem) {
+        successors.push([outputItem, "item"]);
       }
     }
 
@@ -336,10 +331,8 @@ function buildCondensedDAGAndSort(
     });
   });
 
-  graph.recipeOutput.forEach((itemIds, recipeId) => {
-    itemIds.forEach((itemId) => {
-      addEdge(recipeId, itemId);
-    });
+  graph.recipeOutput.forEach((itemId, recipeId) => {
+    addEdge(recipeId, itemId);
   });
 
   const inDegree = new Map<string, number>();
@@ -401,23 +394,13 @@ function calculateFlows(
     } else if (node.type === "recipe") {
       const recipeData = graph.recipeNodes.get(node.recipeId)!;
       const recipe = recipeData.recipe;
-
-      let primaryOutputItemId: ItemId | null = null;
-      let primaryOutputRate = 0;
-
-      recipe.outputs.forEach((output) => {
-        const rate = calcRate(output.amount, recipe.craftingTime);
-        if (rate > primaryOutputRate) {
-          primaryOutputRate = rate;
-          primaryOutputItemId = output.itemId;
-        }
-      });
-
-      const outputDemand = primaryOutputItemId
-        ? itemDemands.get(primaryOutputItemId) || 0
-        : 0;
-      const facilityCount =
-        primaryOutputRate > 0 ? outputDemand / primaryOutputRate : 0;
+      const outputItemId = recipeData.outputItemId;
+      const outputDemand = itemDemands.get(outputItemId) || 0;
+      const outputRate = calcRate(
+        recipe.outputs[0].amount,
+        recipe.craftingTime,
+      );
+      const facilityCount = outputRate > 0 ? outputDemand / outputRate : 0;
 
       recipeFacilityCounts.set(node.recipeId, facilityCount);
 
@@ -559,139 +542,75 @@ function solveSCCFlow(
 
 // ============ Phase 5: Convert to ProductionNode Tree ============
 
-function convertToProductionNodeTree(
+function buildProductionGraph(
   graph: BipartiteGraph,
   flowData: FlowData,
-  targets: Array<{ itemId: ItemId; rate: number }>,
   sccs: SCCInfo[],
   maps: ProductionMaps,
-): { rootNodes: ProductionNode[]; detectedCycles: DetectedCycle[] } {
-  const sccSet = new Set<ItemId>();
-  sccs.forEach((scc) => scc.items.forEach((item) => sccSet.add(item)));
+): ProductionDependencyGraph {
+  const nodes = new Map<string, ProductionGraphNode>();
+  const edges: Array<{ from: string; to: string }> = [];
 
-  function buildNode(
-    itemId: ItemId,
-    visitedPath: Set<ItemId>,
-    isDirectTarget: boolean,
-    parentDemand?: number,
-  ): ProductionNode {
-    const item = getOrThrow(maps.itemMap, itemId, "Item");
-    const demand = parentDemand ?? flowData.itemDemands.get(itemId) ?? 0;
-
-    console.log(
-      `[buildNode] itemId=${itemId}, parentDemand=${parentDemand}, isDirectTarget=${isDirectTarget}, demand=${demand}`,
-    );
-
-    if (visitedPath.has(itemId)) {
-      console.log(`[buildNode] Cycle detected: ${itemId}`);
-      return {
-        item,
-        targetRate: demand,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: false,
-        isTarget: false,
-        dependencies: [],
-        isCyclePlaceholder: true,
-        cycleItemId: itemId,
-      };
-    }
-
-    const itemNode = graph.itemNodes.get(itemId);
-
-    if (!itemNode || itemNode.isRawMaterial) {
-      console.log(`[buildNode] Raw material: ${itemId}`);
-      return {
-        item,
-        targetRate: demand,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: true,
-        isTarget: isDirectTarget,
-        dependencies: [],
-      };
-    }
-
+  // Add item nodes
+  graph.itemNodes.forEach((itemNode, itemId) => {
     const producerRecipeId = graph.itemProducedBy.get(itemId);
-    if (!producerRecipeId) {
-      console.log(`[buildNode] No producer: ${itemId}`);
-      return {
-        item,
-        targetRate: demand,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: true,
-        isTarget: isDirectTarget,
-        dependencies: [],
-      };
+    let productionRate = 0;
+
+    if (producerRecipeId) {
+      // Produced item: calculate from recipe
+      const recipe = maps.recipeMap.get(producerRecipeId)!;
+      const facilityCount =
+        flowData.recipeFacilityCounts.get(producerRecipeId) || 0;
+      const output = recipe.outputs[0];
+      productionRate =
+        calcRate(output.amount, recipe.craftingTime) * facilityCount;
+    } else if (itemNode.isRawMaterial) {
+      productionRate = flowData.itemDemands.get(itemId) || 0;
     }
 
-    const recipeData = graph.recipeNodes.get(producerRecipeId)!;
-    const facilityCount =
-      flowData.recipeFacilityCounts.get(producerRecipeId) || 0;
-
-    console.log(
-      `[buildNode] producerRecipe=${producerRecipeId}, facilityCount=${facilityCount}`,
-    );
-
-    const newVisitedPath = new Set(visitedPath);
-    newVisitedPath.add(itemId);
-
-    const dependencies = recipeData.recipe.inputs.map((input) => {
-      const inputDemand =
-        calcRate(input.amount, recipeData.recipe.craftingTime) * facilityCount;
-      console.log(
-        `[buildNode] Building dependency: ${input.itemId}, inputDemand=${inputDemand}`,
-      );
-      return buildNode(input.itemId, newVisitedPath, false, inputDemand);
+    nodes.set(itemId, {
+      type: "item",
+      itemId,
+      item: itemNode.item,
+      productionRate,
+      isRawMaterial: itemNode.isRawMaterial,
+      isTarget: graph.targets.has(itemId),
     });
-
-    const calculatedRate =
-      calcRate(
-        recipeData.recipe.outputs.find((o) => o.itemId === itemId)!.amount,
-        recipeData.recipe.craftingTime,
-      ) * facilityCount;
-
-    const nodeTargetRate =
-      isDirectTarget && parentDemand !== undefined
-        ? parentDemand
-        : calculatedRate;
-
-    console.log(
-      `[buildNode] ${itemId}: calculatedRate=${calculatedRate}, nodeTargetRate=${nodeTargetRate}`,
-    );
-
-    return {
-      item,
-      targetRate: nodeTargetRate,
+  });
+  // Add recipe nodes
+  graph.recipeNodes.forEach((recipeData, recipeId) => {
+    nodes.set(recipeId, {
+      type: "recipe",
+      recipeId,
       recipe: recipeData.recipe,
       facility: recipeData.facility,
-      facilityCount,
-      isRawMaterial: false,
-      isTarget: isDirectTarget,
-      dependencies,
-    };
-  }
+      facilityCount: flowData.recipeFacilityCounts.get(recipeId) || 0,
+    });
+  });
 
-  const rootNodes = targets.map((t) =>
-    buildNode(t.itemId, new Set(), true, t.rate),
-  );
+  // Build edges: Item → Recipe (consume)
+  graph.itemConsumedBy.forEach((recipeIds, itemId) => {
+    recipeIds.forEach((recipeId) => {
+      edges.push({ from: itemId, to: recipeId });
+    });
+  });
 
+  // Build edges: Recipe → Item (produce)
+  graph.recipeOutput.forEach((itemId, recipeId) => {
+    edges.push({ from: recipeId, to: itemId });
+  });
+
+  // Build cycle info
   const detectedCycles: DetectedCycle[] = sccs.map((scc) => {
     const cycleNodes: ProductionNode[] = Array.from(scc.recipes).map(
       (recipeId) => {
         const recipeData = graph.recipeNodes.get(recipeId)!;
         const facilityCount = flowData.recipeFacilityCounts.get(recipeId) || 0;
-        const primaryOutputItemId = Array.from(recipeData.outputItemIds)[0];
-        const outputAmount = recipeData.recipe.outputs.find(
-          (o) => o.itemId === primaryOutputItemId,
-        )!.amount;
+        const outputItemId = recipeData.outputItemId;
+        const outputAmount = recipeData.recipe.outputs[0].amount;
 
         return {
-          item: graph.itemNodes.get(primaryOutputItemId)!.item,
+          item: graph.itemNodes.get(outputItemId)!.item,
           targetRate:
             calcRate(outputAmount, recipeData.recipe.craftingTime) *
             facilityCount,
@@ -714,7 +633,12 @@ function convertToProductionNodeTree(
     };
   });
 
-  return { rootNodes, detectedCycles };
+  return {
+    nodes,
+    edges,
+    targets: graph.targets,
+    detectedCycles,
+  };
 }
 
 export function calculateProductionPlan(
@@ -743,22 +667,9 @@ export function calculateProductionPlan(
   );
 
   const sccs = detectSCCs(graph);
-
   const condensedOrder = buildCondensedDAGAndSort(graph, sccs);
-
   const targetRatesMap = new Map(targets.map((t) => [t.itemId, t.rate]));
   const flowData = calculateFlows(graph, condensedOrder, targetRatesMap, maps);
 
-  const { rootNodes, detectedCycles } = convertToProductionNodeTree(
-    graph,
-    flowData,
-    targets,
-    sccs,
-    maps,
-  );
-
-  return {
-    dependencyRootNodes: rootNodes,
-    detectedCycles,
-  };
+  return buildProductionGraph(graph, flowData, sccs, maps);
 }

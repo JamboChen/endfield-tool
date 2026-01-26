@@ -1,8 +1,13 @@
-import type { EdgeDirection, ItemId, ProductionNode, Item, Facility, FlowProductionNode, FlowTargetNode } from "@/types";
+import type {
+  EdgeDirection,
+  ItemId,
+  ProductionNode,
+  Item,
+  Facility,
+  FlowProductionNode,
+  FlowTargetNode,
+} from "@/types";
 import { MarkerType, type Edge, type Node, Position } from "@xyflow/react";
-import { createNodeKey } from "@/lib/node-keys";
-
-export const createFlowNodeKey = createNodeKey;
 
 /**
  * Aggregated production node data.
@@ -16,131 +21,6 @@ export type AggregatedProductionNodeData = {
   /** Total facility count across all branches */
   totalFacilityCount: number;
 };
-
-/**
- * Collects all unique production nodes from the dependency tree and aggregates their requirements.
- *
- * Traverses the tree and deduplicates nodes based on their key,
- * while summing up rates and facility counts for nodes that appear in multiple branches.
- *
- * @param rootNodes Root nodes of the dependency tree
- * @returns Map of node keys to their aggregated production data
- */
-export function aggregateProductionNodes(
-  rootNodes: ProductionNode[],
-): Map<string, AggregatedProductionNodeData> {
-  const nodeMap = new Map<string, AggregatedProductionNodeData>();
-
-  const producedItemIds = new Set<ItemId>();
-  const collectProduced = (node: ProductionNode) => {
-    if (node.isCyclePlaceholder) {
-      node.dependencies.forEach(collectProduced);
-      return;
-    }
-    if (!node.isRawMaterial && node.recipe) {
-      producedItemIds.add(node.item.id);
-    }
-    node.dependencies.forEach(collectProduced);
-  };
-  rootNodes.forEach(collectProduced);
-
-  const collect = (node: ProductionNode) => {
-    // Skip cycle placeholders - they don't represent actual production
-    if (node.isCyclePlaceholder) {
-      // Still traverse their dependencies (though they should have none)
-      node.dependencies.forEach(collect);
-      return;
-    }
-
-    if (node.isRawMaterial && producedItemIds.has(node.item.id)) {
-      node.dependencies.forEach(collect);
-      return;
-    }
-
-    const key = createFlowNodeKey(node);
-    const existing = nodeMap.get(key);
-
-    if (existing) {
-      // Aggregate rates and facility counts from multiple occurrences
-      existing.totalRate += node.targetRate;
-      existing.totalFacilityCount += node.facilityCount;
-
-      // Preserve isTarget flag: if ANY occurrence is a target, mark it as target
-      if (node.isTarget && !existing.node.isTarget) {
-        existing.node = {
-          ...existing.node,
-          isTarget: true,
-        };
-      }
-    } else {
-      // First encounter: create new entry
-      nodeMap.set(key, {
-        node,
-        totalRate: node.targetRate,
-        totalFacilityCount: node.facilityCount,
-      });
-    }
-
-    // Recursively process dependencies
-    node.dependencies.forEach(collect);
-  };
-
-  rootNodes.forEach(collect);
-  return nodeMap;
-}
-
-/**
- * Identifies target nodes that serve as upstream dependencies for other targets.
- * These targets need both a production node (marked as target) and a separate target sink.
- *
- * @param rootNodes Root nodes of the dependency tree
- * @returns Set of node keys for targets that are upstream of other targets
- */
-export function findTargetsWithDownstream(
-  rootNodes: ProductionNode[],
-): Set<string> {
-  const allTargets = new Set<string>();
-  const downstreamTargets = new Set<string>();
-
-  // Step 1: Collect all target node keys
-  const collectTargets = (node: ProductionNode, visited: Set<string>) => {
-    const key = createFlowNodeKey(node);
-    if (visited.has(key)) return;
-    visited.add(key);
-    if (node.isTarget) allTargets.add(key);
-    node.dependencies.forEach((dep) => collectTargets(dep, visited));
-  };
-  rootNodes.forEach((root) => collectTargets(root, new Set()));
-
-  // Step 2: For each target, mark any target in its dependency tree as upstream
-  const markUpstreamTargets = (
-    originKey: string,
-    node: ProductionNode,
-    visited: Set<string>,
-  ) => {
-    const key = createFlowNodeKey(node);
-    if (visited.has(key)) return;
-    visited.add(key);
-
-    if (key !== originKey && allTargets.has(key)) {
-      downstreamTargets.add(key);
-    }
-    node.dependencies.forEach((dep) =>
-      markUpstreamTargets(originKey, dep, visited),
-    );
-  };
-
-  rootNodes.forEach((root) => {
-    const key = createFlowNodeKey(root);
-    if (root.isTarget) {
-      root.dependencies.forEach((dep) =>
-        markUpstreamTargets(key, dep, new Set()),
-      );
-    }
-  });
-
-  return downstreamTargets;
-}
 
 /**
  * Creates a standardized edge for React Flow with optional pre-computed direction.
@@ -371,10 +251,10 @@ export function createTargetSinkNode(
       facilities,
       productionInfo: productionInfo
         ? {
-          facility: productionInfo.facility ?? null,
-          facilityCount: productionInfo.facilityCount,
-          recipe: productionInfo.recipe ?? null,
-        }
+            facility: productionInfo.facility ?? null,
+            facilityCount: productionInfo.facilityCount,
+            recipe: productionInfo.recipe ?? null,
+          }
         : undefined,
     },
     position: { x: 0, y: 0 },
