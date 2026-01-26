@@ -8,9 +8,11 @@ import type {
   ProductionNode,
   DetectedCycle,
   ProductionDependencyGraph,
+  ProductionGraphNode,
 } from "@/types";
 import { solveLinearSystem } from "./linear-solver";
 import { forcedRawMaterials } from "@/data";
+import { calcRate } from "@/lib/utils";
 
 export type RecipeSelector = (
   availableRecipes: Recipe[],
@@ -35,158 +37,436 @@ type ProductionMaps = {
   facilityMap: Map<FacilityId, Facility>;
 };
 
-// Helper: get value from map or throw
+type ItemNode = {
+  itemId: ItemId;
+  item: Item;
+  isRawMaterial: boolean;
+};
+
+type RecipeNodeData = {
+  recipeId: RecipeId;
+  recipe: Recipe;
+  facility: Facility;
+  outputItemId: ItemId;
+};
+
+type BipartiteGraph = {
+  itemNodes: Map<ItemId, ItemNode>;
+  recipeNodes: Map<RecipeId, RecipeNodeData>;
+
+  itemConsumedBy: Map<ItemId, Set<RecipeId>>;
+  itemProducedBy: Map<ItemId, RecipeId>;
+
+  recipeInputs: Map<RecipeId, Set<ItemId>>;
+  recipeOutput: Map<RecipeId, ItemId>;
+
+  targets: Set<ItemId>;
+  rawMaterials: Set<ItemId>;
+};
+type SCCInfo = {
+  id: string;
+  items: Set<ItemId>;
+  recipes: Set<RecipeId>;
+  externalInputs: Set<ItemId>;
+};
+
+type CondensedNode =
+  | { type: "item"; itemId: ItemId }
+  | { type: "recipe"; recipeId: RecipeId }
+  | { type: "scc"; scc: SCCInfo };
+
+type FlowData = {
+  itemDemands: Map<ItemId, number>;
+  recipeFacilityCounts: Map<RecipeId, number>;
+};
+
 const getOrThrow = <K, V>(map: Map<K, V>, key: K, type: string): V => {
   const value = map.get(key);
   if (!value) throw new Error(`${type} not found: ${key}`);
   return value;
 };
 
-// Helper: calculate production rate per facility
-const calcRate = (amount: number, craftingTime: number): number =>
-  (amount * 60) / craftingTime;
-
-/** Reconstructs a cycle for visualization */
-function reconstructCycle(
-  cyclePath: ItemId[],
+function buildBipartiteGraph(
+  targets: Array<{ itemId: ItemId; rate: number }>,
   maps: ProductionMaps,
   recipeOverrides?: Map<ItemId, RecipeId>,
   recipeSelector: RecipeSelector = defaultRecipeSelector,
   manualRawMaterials?: Set<ItemId>,
-): ProductionNode[] {
-  const cycleNodes: ProductionNode[] = [];
-  const pathSet = new Set(cyclePath);
+): BipartiteGraph {
+  const graph: BipartiteGraph = {
+    itemNodes: new Map(),
+    recipeNodes: new Map(),
+    itemConsumedBy: new Map(),
+    itemProducedBy: new Map(),
+    recipeInputs: new Map(),
+    recipeOutput: new Map(),
+    targets: new Set(targets.map((t) => t.itemId)),
+    rawMaterials: new Set(),
+  };
 
-  for (let i = 0; i < cyclePath.length; i++) {
-    const itemId = cyclePath[i];
-    const nextItemId = cyclePath[(i + 1) % cyclePath.length];
+  const visitedItems = new Set<ItemId>();
 
-    if (manualRawMaterials?.has(itemId)) continue;
+  function traverse(itemId: ItemId) {
+    if (visitedItems.has(itemId)) return;
+    visitedItems.add(itemId);
 
-    const item = maps.itemMap.get(itemId);
-    if (!item) continue;
+    const item = getOrThrow(maps.itemMap, itemId, "Item");
+
+    const isRaw =
+      forcedRawMaterials.has(itemId) ||
+      (manualRawMaterials?.has(itemId) ?? false);
+
+    graph.itemNodes.set(itemId, {
+      itemId,
+      item,
+      isRawMaterial: isRaw,
+    });
+
+    if (isRaw) {
+      graph.rawMaterials.add(itemId);
+      return;
+    }
 
     const availableRecipes = Array.from(maps.recipeMap.values()).filter((r) =>
       r.outputs.some((o) => o.itemId === itemId),
     );
-    if (availableRecipes.length === 0) continue;
 
-    let selectedRecipe: Recipe;
-    if (recipeOverrides?.has(itemId)) {
-      const override = maps.recipeMap.get(recipeOverrides.get(itemId)!);
-      if (!override) continue;
-      selectedRecipe = override;
-    } else {
-      const compatible = availableRecipes.filter((r) =>
-        r.inputs.some((input) => input.itemId === nextItemId),
-      );
-      const recipesToSelect =
-        compatible.length > 0 ? compatible : availableRecipes;
-      selectedRecipe = recipeSelector(
-        recipesToSelect,
-        new Set(cyclePath.slice(0, i + 1)),
-      );
+    if (availableRecipes.length === 0) {
+      graph.itemNodes.get(itemId)!.isRawMaterial = true;
+      graph.rawMaterials.add(itemId);
+      return;
     }
 
-    const facility = maps.facilityMap.get(selectedRecipe.facilityId);
-    if (!facility) continue;
+    const selectedRecipe = recipeOverrides?.has(itemId)
+      ? getOrThrow(
+        maps.recipeMap,
+        recipeOverrides.get(itemId)!,
+        "Override recipe",
+      )
+      : recipeSelector(availableRecipes, new Set([itemId]));
 
-    const outputAmount =
-      selectedRecipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
-    const rate = calcRate(outputAmount, selectedRecipe.craftingTime);
-    const facilityCount = 1 / rate;
+    const facility = getOrThrow(
+      maps.facilityMap,
+      selectedRecipe.facilityId,
+      "Facility",
+    );
 
-    const dependencies = selectedRecipe.inputs.map((input) => {
-      const depItem = getOrThrow(maps.itemMap, input.itemId, "Dependency item");
-      return {
-        item: depItem,
-        targetRate:
-          calcRate(input.amount, selectedRecipe.craftingTime) * facilityCount,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: !pathSet.has(input.itemId),
-        isTarget: false,
-        dependencies: [],
-      } as ProductionNode;
-    });
+    if (!graph.recipeNodes.has(selectedRecipe.id)) {
+      graph.recipeNodes.set(selectedRecipe.id, {
+        recipeId: selectedRecipe.id,
+        recipe: selectedRecipe,
+        facility,
+        outputItemId: itemId,
+      });
 
-    cycleNodes.push({
-      item,
-      targetRate: 1,
-      recipe: selectedRecipe,
-      facility,
-      facilityCount,
-      isRawMaterial: false,
-      isTarget: false,
-      dependencies,
+      graph.recipeOutput.set(selectedRecipe.id, itemId);
+      graph.recipeInputs.set(selectedRecipe.id, new Set());
+    }
+
+    graph.itemProducedBy.set(itemId, selectedRecipe.id);
+
+    selectedRecipe.inputs.forEach((input) => {
+      graph.recipeInputs.get(selectedRecipe.id)!.add(input.itemId);
+
+      if (!graph.itemConsumedBy.has(input.itemId)) {
+        graph.itemConsumedBy.set(input.itemId, new Set());
+      }
+      graph.itemConsumedBy.get(input.itemId)!.add(selectedRecipe.id);
+
+      traverse(input.itemId);
     });
   }
 
-  return cycleNodes;
+  targets.forEach(({ itemId }) => traverse(itemId));
+
+  return graph;
 }
 
-/** Calculates net outputs of a cycle */
-function calculateCycleNetOutputs(
-  cycleNodes: ProductionNode[],
-): Map<ItemId, number> {
-  const production = new Map<ItemId, number>();
-  const consumption = new Map<ItemId, number>();
+function detectSCCs(graph: BipartiteGraph): SCCInfo[] {
+  const sccs: SCCInfo[] = [];
+  const indices = new Map<string, number>();
+  const lowlinks = new Map<string, number>();
+  const onStack = new Set<string>();
+  const stack: string[] = [];
+  let index = 0;
 
-  cycleNodes.forEach((node) => {
-    if (!node.recipe) return;
+  function strongConnect(nodeId: string, nodeType: "item" | "recipe") {
+    indices.set(nodeId, index);
+    lowlinks.set(nodeId, index);
+    index++;
+    stack.push(nodeId);
+    onStack.add(nodeId);
 
-    node.recipe.outputs.forEach((output) => {
-      production.set(
-        output.itemId,
-        (production.get(output.itemId) || 0) + output.amount,
-      );
+    const successors: Array<[string, "item" | "recipe"]> = [];
+
+    if (nodeType === "item") {
+      const consumerRecipes = graph.itemConsumedBy.get(nodeId as ItemId);
+      if (consumerRecipes) {
+        consumerRecipes.forEach((recipeId) => {
+          successors.push([recipeId, "recipe"]);
+        });
+      }
+    } else {
+      const outputItem = graph.recipeOutput.get(nodeId as RecipeId);
+      if (outputItem) {
+        successors.push([outputItem, "item"]);
+      }
+    }
+
+    successors.forEach(([succId, succType]) => {
+      if (!indices.has(succId)) {
+        strongConnect(succId, succType);
+        lowlinks.set(
+          nodeId,
+          Math.min(lowlinks.get(nodeId)!, lowlinks.get(succId)!),
+        );
+      } else if (onStack.has(succId)) {
+        lowlinks.set(
+          nodeId,
+          Math.min(lowlinks.get(nodeId)!, indices.get(succId)!),
+        );
+      }
     });
 
-    node.recipe.inputs.forEach((input) => {
-      consumption.set(
-        input.itemId,
-        (consumption.get(input.itemId) || 0) + input.amount,
-      );
-    });
-  });
+    if (lowlinks.get(nodeId) === indices.get(nodeId)) {
+      const sccItems = new Set<ItemId>();
+      const sccRecipes = new Set<RecipeId>();
 
-  const netOutputs = new Map<ItemId, number>();
-  production.forEach((produced, itemId) => {
-    const net = produced - (consumption.get(itemId) || 0);
-    if (Math.abs(net) > 0.001) {
-      netOutputs.set(itemId, net);
+      let w: string;
+      do {
+        w = stack.pop()!;
+        onStack.delete(w);
+
+        if (graph.itemNodes.has(w as ItemId)) {
+          sccItems.add(w as ItemId);
+        } else {
+          sccRecipes.add(w as RecipeId);
+        }
+      } while (w !== nodeId);
+
+      if (sccItems.size + sccRecipes.size > 1) {
+        const externalInputs = new Set<ItemId>();
+
+        sccRecipes.forEach((recipeId) => {
+          const inputs = graph.recipeInputs.get(recipeId) || new Set();
+          inputs.forEach((inputItemId) => {
+            if (!sccItems.has(inputItemId)) {
+              externalInputs.add(inputItemId);
+            }
+          });
+        });
+
+        sccs.push({
+          id: `scc-${Array.from(sccItems).sort().join("-")}`,
+          items: sccItems,
+          recipes: sccRecipes,
+          externalInputs,
+        });
+      }
+    }
+  }
+
+  graph.itemNodes.forEach((_, itemId) => {
+    if (!indices.has(itemId)) {
+      strongConnect(itemId, "item");
     }
   });
 
-  return netOutputs;
+  return sccs;
 }
 
-/** Solves an SCC using linear equations */
-function solveSCC(
-  involvedItemIds: ItemId[],
-  cycleNodes: ProductionNode[],
-  externalDemands: Map<ItemId, number>,
-): Map<RecipeId, number> | null {
-  const recipes = cycleNodes.map((n) => n.recipe).filter(Boolean) as Recipe[];
+function buildCondensedDAGAndSort(
+  graph: BipartiteGraph,
+  sccs: SCCInfo[],
+): CondensedNode[] {
+  const nodeToSCC = new Map<string, string>();
 
-  const n = involvedItemIds.length;
-  // We need n recipes to solve for n items
-  if (recipes.length !== n) return null;
+  sccs.forEach((scc) => {
+    scc.items.forEach((itemId) => nodeToSCC.set(itemId, scc.id));
+    scc.recipes.forEach((recipeId) => nodeToSCC.set(recipeId, scc.id));
+  });
+
+  const condensedNodes = new Map<string, CondensedNode>();
+  const condensedEdges = new Map<string, Set<string>>();
+
+  sccs.forEach((scc) => {
+    condensedNodes.set(scc.id, { type: "scc", scc });
+    condensedEdges.set(scc.id, new Set());
+  });
+
+  graph.itemNodes.forEach((_, itemId) => {
+    if (!nodeToSCC.has(itemId)) {
+      condensedNodes.set(itemId, { type: "item", itemId });
+      condensedEdges.set(itemId, new Set());
+    }
+  });
+
+  graph.recipeNodes.forEach((_, recipeId) => {
+    if (!nodeToSCC.has(recipeId)) {
+      condensedNodes.set(recipeId, { type: "recipe", recipeId });
+      condensedEdges.set(recipeId, new Set());
+    }
+  });
+
+  const addEdge = (fromId: string, toId: string) => {
+    const fromCondensed = nodeToSCC.get(fromId) || fromId;
+    const toCondensed = nodeToSCC.get(toId) || toId;
+
+    if (fromCondensed !== toCondensed) {
+      condensedEdges.get(fromCondensed)!.add(toCondensed);
+    }
+  };
+
+  graph.itemConsumedBy.forEach((recipeIds, itemId) => {
+    recipeIds.forEach((recipeId) => {
+      addEdge(itemId, recipeId);
+    });
+  });
+
+  graph.recipeOutput.forEach((itemId, recipeId) => {
+    addEdge(recipeId, itemId);
+  });
+
+  const inDegree = new Map<string, number>();
+  condensedNodes.forEach((_, nodeId) => {
+    inDegree.set(nodeId, 0);
+  });
+
+  condensedEdges.forEach((targets) => {
+    targets.forEach((target) => {
+      inDegree.set(target, (inDegree.get(target) || 0) + 1);
+    });
+  });
+
+  const queue: string[] = [];
+  inDegree.forEach((degree, nodeId) => {
+    if (degree === 0) queue.push(nodeId);
+  });
+
+  const topoOrder: CondensedNode[] = [];
+
+  while (queue.length > 0) {
+    const nodeId = queue.shift()!;
+    topoOrder.push(condensedNodes.get(nodeId)!);
+
+    condensedEdges.get(nodeId)!.forEach((target) => {
+      const newDegree = inDegree.get(target)! - 1;
+      inDegree.set(target, newDegree);
+      if (newDegree === 0) {
+        queue.push(target);
+      }
+    });
+  }
+
+  return topoOrder;
+}
+
+function calculateFlows(
+  graph: BipartiteGraph,
+  condensedOrder: CondensedNode[],
+  targetRates: Map<ItemId, number>,
+  maps: ProductionMaps,
+): FlowData {
+  const itemDemands = new Map<ItemId, number>();
+  const recipeFacilityCounts = new Map<RecipeId, number>();
+
+  targetRates.forEach((rate, itemId) => {
+    itemDemands.set(itemId, rate);
+  });
+
+  const reversedOrder = condensedOrder.reverse();
+
+  reversedOrder.forEach((node) => {
+    if (node.type === "scc") {
+      solveSCCFlow(node.scc, graph, itemDemands, recipeFacilityCounts, maps);
+    } else if (node.type === "recipe") {
+      const recipeData = graph.recipeNodes.get(node.recipeId)!;
+      const recipe = recipeData.recipe;
+      const outputItemId = recipeData.outputItemId;
+      const outputDemand = itemDemands.get(outputItemId) || 0;
+      const outputRate = calcRate(
+        recipe.outputs[0].amount,
+        recipe.craftingTime,
+      );
+      const facilityCount = outputRate > 0 ? outputDemand / outputRate : 0;
+
+      recipeFacilityCounts.set(node.recipeId, facilityCount);
+
+      recipe.inputs.forEach((input) => {
+        const inputDemand =
+          calcRate(input.amount, recipe.craftingTime) * facilityCount;
+        itemDemands.set(
+          input.itemId,
+          (itemDemands.get(input.itemId) || 0) + inputDemand,
+        );
+      });
+    }
+  });
+
+  return { itemDemands, recipeFacilityCounts };
+}
+
+function solveSCCFlow(
+  scc: SCCInfo,
+  graph: BipartiteGraph,
+  itemDemands: Map<ItemId, number>,
+  recipeFacilityCounts: Map<RecipeId, number>,
+  maps: ProductionMaps,
+) {
+  const externalDemands = new Map<ItemId, number>();
+
+  scc.items.forEach((itemId) => {
+    let demand = 0;
+
+    const consumers = graph.itemConsumedBy.get(itemId);
+    if (consumers) {
+      consumers.forEach((recipeId) => {
+        if (!scc.recipes.has(recipeId)) {
+          const facilityCount = recipeFacilityCounts.get(recipeId) || 0;
+          const recipe = maps.recipeMap.get(recipeId)!;
+          const input = recipe.inputs.find((i) => i.itemId === itemId);
+          if (input) {
+            demand +=
+              calcRate(input.amount, recipe.craftingTime) * facilityCount;
+          }
+        }
+      });
+    }
+
+    if (graph.targets.has(itemId)) {
+      demand += itemDemands.get(itemId) || 0;
+    }
+
+    if (demand > 0) {
+      externalDemands.set(itemId, demand);
+    }
+  });
+
+  if (externalDemands.size === 0) return;
+
+  const itemsList = Array.from(scc.items);
+  const recipesList = Array.from(scc.recipes).map(
+    (rid) => maps.recipeMap.get(rid)!,
+  );
+
+  const n = itemsList.length;
+  const m = recipesList.length;
+
+  if (m === 0 || n === 0) return;
 
   const matrix: number[][] = [];
   const constants: number[] = [];
 
   for (let i = 0; i < n; i++) {
-    const itemId = involvedItemIds[i];
-    const row = new Array(n).fill(0);
+    const itemId = itemsList[i];
+    const row = new Array(m).fill(0);
 
-    for (let j = 0; j < n; j++) {
-      const recipe = recipes[j];
+    for (let j = 0; j < m; j++) {
+      const recipe = recipesList[j];
       const output =
         recipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
       const input =
-        recipe.inputs.find((inpt) => inpt.itemId === itemId)?.amount || 0;
+        recipe.inputs.find((inp) => inp.itemId === itemId)?.amount || 0;
 
       const outRate = (output * 60) / recipe.craftingTime;
       const inRate = (input * 60) / recipe.craftingTime;
@@ -198,271 +478,139 @@ function solveSCC(
   }
 
   const solution = solveLinearSystem(matrix, constants);
-  if (!solution) return null;
 
-  const recipeCounts = new Map<RecipeId, number>();
-  for (let i = 0; i < n; i++) {
-    // If any facility count is significantly negative, the cycle is unsustainable
-    if (solution[i] < -1e-9) return null;
-    recipeCounts.set(recipes[i].id, Math.max(0, solution[i]));
+  if (!solution) {
+    console.warn(`Cannot solve SCC ${scc.id}`);
+    return;
   }
 
-  return recipeCounts;
-}
+  for (let j = 0; j < m; j++) {
+    const facilityCount = Math.max(0, solution[j]);
+    recipeFacilityCounts.set(recipesList[j].id, facilityCount);
+  }
 
-/** Builds dependency tree and detects cycles */
-function buildDependencyTree(
-  targets: Array<{ itemId: ItemId; rate: number }>,
-  maps: ProductionMaps,
-  recipeOverrides?: Map<ItemId, RecipeId>,
-  recipeSelector: RecipeSelector = defaultRecipeSelector,
-  manualRawMaterials?: Set<ItemId>,
-): { rootNodes: ProductionNode[]; detectedCycles: DetectedCycle[] } {
-  const detectedCycles: DetectedCycle[] = [];
+  scc.externalInputs.forEach((inputItemId) => {
+    let totalConsumption = 0;
 
-  const calculateNode = (
-    itemId: ItemId,
-    requiredRate: number,
-    visitedPath: Set<ItemId>,
-    isDirectTarget: boolean,
-  ): ProductionNode => {
-    const item = getOrThrow(maps.itemMap, itemId, "Item");
+    scc.recipes.forEach((recipeId) => {
+      const recipe = maps.recipeMap.get(recipeId)!;
+      const facilityCount = recipeFacilityCounts.get(recipeId) || 0;
+      const input = recipe.inputs.find((i) => i.itemId === inputItemId);
 
-    // Check for cycle
-    if (visitedPath.has(itemId)) {
-      const pathArray = Array.from(visitedPath);
-      const cyclePath = pathArray.slice(pathArray.indexOf(itemId));
-      const cycleId = `cycle-${[...cyclePath].sort().join("-")}`;
-
-      // Check if cycle already detected
-      const isDuplicate = detectedCycles.some((c) => {
-        if (c.involvedItemIds.length !== cyclePath.length) return false;
-        const cycleSet = new Set(cyclePath);
-        return c.involvedItemIds.every((id) => cycleSet.has(id));
-      });
-
-      if (!isDuplicate) {
-        const cycleNodes = reconstructCycle(
-          cyclePath,
-          maps,
-          recipeOverrides,
-          recipeSelector,
-          manualRawMaterials,
-        );
-
-        detectedCycles.push({
-          cycleId,
-          involvedItemIds: cyclePath,
-          breakPointItemId: itemId,
-          cycleNodes,
-          netOutputs: calculateCycleNetOutputs(cycleNodes),
-        });
-      }
-
-      return {
-        item,
-        targetRate: requiredRate,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: false,
-        isTarget: false,
-        dependencies: [],
-        isCyclePlaceholder: true,
-        cycleItemId: itemId,
-      };
-    }
-
-    // Check if raw material
-    if (forcedRawMaterials.has(itemId)) {
-      return {
-        item,
-        targetRate: requiredRate,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: true,
-        isTarget: isDirectTarget,
-        dependencies: [],
-      };
-    }
-
-    if (manualRawMaterials?.has(itemId)) {
-      return {
-        item,
-        targetRate: requiredRate,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: true,
-        isTarget: isDirectTarget,
-        dependencies: [],
-      };
-    }
-
-    const availableRecipes = Array.from(maps.recipeMap.values()).filter((r) =>
-      r.outputs.some((o) => o.itemId === itemId),
-    );
-
-    if (availableRecipes.length === 0) {
-      return {
-        item,
-        targetRate: requiredRate,
-        recipe: null,
-        facility: null,
-        facilityCount: 0,
-        isRawMaterial: true,
-        isTarget: isDirectTarget,
-        dependencies: [],
-      };
-    }
-
-    const newVisitedPath = new Set(visitedPath);
-    newVisitedPath.add(itemId);
-
-    const selectedRecipe = recipeOverrides?.has(itemId)
-      ? getOrThrow(
-          maps.recipeMap,
-          recipeOverrides.get(itemId)!,
-          "Override recipe",
-        )
-      : recipeSelector(availableRecipes, newVisitedPath);
-
-    const facility = getOrThrow(
-      maps.facilityMap,
-      selectedRecipe.facilityId,
-      "Facility",
-    );
-    const outputAmount =
-      selectedRecipe.outputs.find((o) => o.itemId === itemId)?.amount || 0;
-    const outputRatePerFacility = calcRate(
-      outputAmount,
-      selectedRecipe.craftingTime,
-    );
-    const facilityCount = requiredRate / outputRatePerFacility;
-    const cyclesPerMinute = 60 / selectedRecipe.craftingTime;
-
-    const dependencies = selectedRecipe.inputs.map((input) => {
-      const inputRate = input.amount * cyclesPerMinute * facilityCount;
-      return calculateNode(input.itemId, inputRate, newVisitedPath, false);
-    });
-
-    return {
-      item,
-      targetRate: requiredRate,
-      recipe: selectedRecipe,
-      facility,
-      facilityCount,
-      isRawMaterial: false,
-      isTarget: isDirectTarget,
-      dependencies,
-    };
-  };
-
-  const rootNodes = targets.map((t) =>
-    calculateNode(t.itemId, t.rate, new Set(), true),
-  );
-
-  // Solve cycles and update facility counts
-  detectedCycles.forEach((cycle) => {
-    const cycleItemSet = new Set(cycle.involvedItemIds);
-    const externalConsumption = new Map<ItemId, number>();
-
-    const findExternalConsumption = (node: ProductionNode, inCycle = false) => {
-      if (node.isCyclePlaceholder) return;
-
-      const nodeIsInCycle =
-        cycleItemSet.has(node.item.id) && !node.isRawMaterial;
-
-      if (!nodeIsInCycle && !inCycle) {
-        node.dependencies.forEach((dep) => {
-          if (dep.isCyclePlaceholder) return;
-          if (cycleItemSet.has(dep.item.id) && !dep.isRawMaterial) {
-            externalConsumption.set(
-              dep.item.id,
-              (externalConsumption.get(dep.item.id) || 0) + dep.targetRate,
-            );
-          }
-        });
-      }
-
-      node.dependencies.forEach((dep) =>
-        findExternalConsumption(dep, nodeIsInCycle || inCycle),
-      );
-    };
-
-    rootNodes.forEach((node) => findExternalConsumption(node));
-
-    // Add demand from targets if they are in the SCC
-    // This is necessary because findExternalConsumption starts from rootNodes (recipes),
-    // but the initial production target itself is not a recipe dependency.
-    targets.forEach((t) => {
-      if (cycleItemSet.has(t.itemId)) {
-        externalConsumption.set(
-          t.itemId,
-          (externalConsumption.get(t.itemId) || 0) + t.rate,
-        );
+      if (input) {
+        totalConsumption +=
+          calcRate(input.amount, recipe.craftingTime) * facilityCount;
       }
     });
 
-    if (externalConsumption.size === 0) return;
-
-    try {
-      const solution = solveSCC(
-        cycle.involvedItemIds,
-        cycle.cycleNodes,
-        externalConsumption,
+    if (totalConsumption > 0) {
+      itemDemands.set(
+        inputItemId,
+        (itemDemands.get(inputItemId) || 0) + totalConsumption,
       );
-
-      if (!solution) {
-        console.warn(`Cycle ${cycle.cycleId} has no valid solution`);
-        return;
-      }
-
-      const updateCycleNodes = (node: ProductionNode) => {
-        if (node.isCyclePlaceholder) {
-          node.dependencies.forEach(updateCycleNodes);
-          return;
-        }
-
-        if (node.recipe && solution.has(node.recipe.id)) {
-          const solvedCount = solution.get(node.recipe.id)!;
-          node.facilityCount = solvedCount;
-
-          // Update the node's own targetRate based on its output
-          const mainOutput = node.recipe.outputs.find(
-            (o) => o.itemId === node.item.id,
-          );
-          if (mainOutput) {
-            node.targetRate =
-              calcRate(mainOutput.amount, node.recipe.craftingTime) *
-              solvedCount;
-          }
-
-          // Update dependencies' targetRate
-          node.recipe.inputs.forEach((input, index) => {
-            if (node.dependencies[index]) {
-              node.dependencies[index].targetRate =
-                calcRate(input.amount, node.recipe!.craftingTime) * solvedCount;
-            }
-          });
-        }
-
-        node.dependencies.forEach(updateCycleNodes);
-      };
-
-      rootNodes.forEach(updateCycleNodes);
-    } catch (error) {
-      console.error(`Failed to solve cycle ${cycle.cycleId}:`, error);
     }
   });
-
-  return { rootNodes, detectedCycles };
 }
 
-/**
- * Calculates a complete production plan for multiple target items at specified rates.
- */
+function buildProductionGraph(
+  graph: BipartiteGraph,
+  flowData: FlowData,
+  sccs: SCCInfo[],
+  maps: ProductionMaps,
+): ProductionDependencyGraph {
+  const nodes = new Map<string, ProductionGraphNode>();
+  const edges: Array<{ from: string; to: string }> = [];
+
+  // Add item nodes
+  graph.itemNodes.forEach((itemNode, itemId) => {
+    const producerRecipeId = graph.itemProducedBy.get(itemId);
+    let productionRate = 0;
+
+    if (producerRecipeId) {
+      // Produced item: calculate from recipe
+      const recipe = maps.recipeMap.get(producerRecipeId)!;
+      const facilityCount =
+        flowData.recipeFacilityCounts.get(producerRecipeId) || 0;
+      const output = recipe.outputs[0];
+      productionRate =
+        calcRate(output.amount, recipe.craftingTime) * facilityCount;
+    } else if (itemNode.isRawMaterial) {
+      productionRate = flowData.itemDemands.get(itemId) || 0;
+    }
+
+    nodes.set(itemId, {
+      type: "item",
+      itemId,
+      item: itemNode.item,
+      productionRate,
+      isRawMaterial: itemNode.isRawMaterial,
+      isTarget: graph.targets.has(itemId),
+    });
+  });
+  // Add recipe nodes
+  graph.recipeNodes.forEach((recipeData, recipeId) => {
+    nodes.set(recipeId, {
+      type: "recipe",
+      recipeId,
+      recipe: recipeData.recipe,
+      facility: recipeData.facility,
+      facilityCount: flowData.recipeFacilityCounts.get(recipeId) || 0,
+    });
+  });
+
+  // Build edges: Item → Recipe (consume)
+  graph.itemConsumedBy.forEach((recipeIds, itemId) => {
+    recipeIds.forEach((recipeId) => {
+      edges.push({ from: itemId, to: recipeId });
+    });
+  });
+
+  // Build edges: Recipe → Item (produce)
+  graph.recipeOutput.forEach((itemId, recipeId) => {
+    edges.push({ from: recipeId, to: itemId });
+  });
+
+  // Build cycle info
+  const detectedCycles: DetectedCycle[] = sccs.map((scc) => {
+    const cycleNodes: ProductionNode[] = Array.from(scc.recipes).map(
+      (recipeId) => {
+        const recipeData = graph.recipeNodes.get(recipeId)!;
+        const facilityCount = flowData.recipeFacilityCounts.get(recipeId) || 0;
+        const outputItemId = recipeData.outputItemId;
+        const outputAmount = recipeData.recipe.outputs[0].amount;
+
+        return {
+          item: graph.itemNodes.get(outputItemId)!.item,
+          targetRate:
+            calcRate(outputAmount, recipeData.recipe.craftingTime) *
+            facilityCount,
+          recipe: recipeData.recipe,
+          facility: recipeData.facility,
+          facilityCount,
+          isRawMaterial: false,
+          isTarget: false,
+          dependencies: [],
+        };
+      },
+    );
+
+    return {
+      cycleId: scc.id,
+      involvedItemIds: Array.from(scc.items),
+      breakPointItemId: Array.from(scc.items)[0],
+      cycleNodes,
+      netOutputs: new Map(),
+    };
+  });
+
+  return {
+    nodes,
+    edges,
+    targets: graph.targets,
+    detectedCycles,
+  };
+}
+
 export function calculateProductionPlan(
   targets: Array<{ itemId: ItemId; rate: number }>,
   items: Item[],
@@ -480,18 +628,18 @@ export function calculateProductionPlan(
     facilityMap: new Map(facilities.map((f) => [f.id, f])),
   };
 
-  // Only build dependency tree and detect cycles
-  const { rootNodes: dependencyRootNodes, detectedCycles } =
-    buildDependencyTree(
-      targets,
-      maps,
-      recipeOverrides,
-      recipeSelector,
-      manualRawMaterials,
-    );
+  const graph = buildBipartiteGraph(
+    targets,
+    maps,
+    recipeOverrides,
+    recipeSelector,
+    manualRawMaterials,
+  );
 
-  return {
-    dependencyRootNodes,
-    detectedCycles,
-  };
+  const sccs = detectSCCs(graph);
+  const condensedOrder = buildCondensedDAGAndSort(graph, sccs);
+  const targetRatesMap = new Map(targets.map((t) => [t.itemId, t.rate]));
+  const flowData = calculateFlows(graph, condensedOrder, targetRatesMap, maps);
+
+  return buildProductionGraph(graph, flowData, sccs, maps);
 }

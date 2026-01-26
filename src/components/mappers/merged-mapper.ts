@@ -2,267 +2,236 @@ import type { Node, Edge } from "@xyflow/react";
 import type {
   Item,
   Facility,
-  ProductionNode,
+  ProductionDependencyGraph,
+  ProductionGraphNode,
   FlowNodeData,
   FlowProductionNode,
   FlowTargetNode,
 } from "@/types";
 import {
-  createFlowNodeKey,
-  aggregateProductionNodes,
-  findTargetsWithDownstream,
   createEdge,
   createProductionFlowNode,
   createTargetSinkNode,
 } from "../flow/flow-utils";
-import {
-  createFlowNodeId,
-  createFlowNodeIdFromNode,
-  createTargetSinkId,
-} from "@/lib/node-keys";
-import { calculateDemandRate } from "@/lib/utils";
+import { createTargetSinkId, createRawMaterialId } from "@/lib/node-keys";
+import { calcRate } from "@/lib/utils";
 
 /**
- * Maps a UnifiedProductionPlan to React Flow nodes and edges in merged mode.
- *
- * In merged mode, identical production steps are combined into single nodes
- * showing aggregated facility counts and production rates. Production cycles
- * are visualized with special edge styling instead of being collapsed.
- *
- * @param rootNodes The root ProductionNodes of the dependency tree
- * @param items All available items in the game
- * @param facilities All available facilities in the game
- * @param detectedCycles Detected production cycles for visual highlighting
- * @returns An object containing the generated React Flow nodes and edges
+ * Maps a ProductionDependencyGraph to React Flow nodes and edges in merged mode.
  */
 export function mapPlanToFlowMerged(
-  rootNodes: ProductionNode[],
+  plan: ProductionDependencyGraph,
   items: Item[],
   facilities: Facility[],
 ): { nodes: (FlowProductionNode | FlowTargetNode)[]; edges: Edge[] } {
-  const nodes: Node<FlowNodeData>[] = [];
-  const edges: Edge[] = [];
+  const flowNodes: Node<FlowNodeData>[] = [];
+  const flowEdges: Edge[] = [];
   const targetSinkNodes: FlowTargetNode[] = [];
 
-  const aggregatedNodes = aggregateProductionNodes(rootNodes);
-  const targetsWithDownstream = findTargetsWithDownstream(rootNodes);
+  let edgeIdCounter = 0;
 
-  const getOrCreateNodeId = (node: ProductionNode): string => {
-    if (node.isCyclePlaceholder && node.cycleItemId) {
-      const productionKey = Array.from(aggregatedNodes.keys()).find((key) => {
-        const parts = key.split("__");
-        return parts[0] === node.cycleItemId && parts[2] === "prod";
-      });
-
-      if (productionKey) {
-        return createFlowNodeId(productionKey);
-      }
+  // Pre-calculate which items are upstream (have consumers)
+  const upstreamItemIds = new Set<string>();
+  plan.edges.forEach((edge) => {
+    if (plan.nodes.get(edge.from)?.type === "item") {
+      upstreamItemIds.add(edge.from);
     }
+  });
 
-    return createFlowNodeIdFromNode(node);
-  };
+  // Create production nodes (recipe nodes only)
+  plan.nodes.forEach((node, nodeId) => {
+    if (node.type === "recipe") {
+      const outputItemId = plan.edges.find((e) => e.from === nodeId)?.to;
+      const outputItemNode = outputItemId
+        ? (plan.nodes.get(outputItemId) as
+          | Extract<ProductionGraphNode, { type: "item" }>
+          | undefined)
+        : undefined;
 
-  const traverse = (
-    node: ProductionNode,
-    parentId: string | null = null,
-    edgeIdCounter: { count: number },
-    flowToParent?: number,
-  ): string => {
-    const nodeId = getOrCreateNodeId(node);
-    const key = createFlowNodeKey(node);
+      // Skip recipe node if it's a terminal target (has no consumers)
+      // This is because we'll display it in the TargetSinkNode instead
+      const isTerminalTarget =
+        outputItemNode?.isTarget && !upstreamItemIds.has(outputItemId!);
 
-    if (node.isCyclePlaceholder) {
-      if (parentId && parentId !== nodeId) {
-        const cycleFlowRate = flowToParent ?? node.targetRate;
-
-        console.log(`[Cycle Edge] ${node.item.id} (placeholder) -> parent`, {
-          nodeId,
-          parentId,
-          cycleItemId: node.cycleItemId,
-          targetRate: node.targetRate,
-          flowToParent,
-          cycleFlowRate,
-        });
-
-        edges.push(
-          createEdge(
-            `e${edgeIdCounter.count++}`,
+      if (outputItemNode && !isTerminalTarget) {
+        flowNodes.push(
+          createProductionFlowNode(
             nodeId,
-            parentId,
-            cycleFlowRate,
-            "backward",
+            {
+              item: outputItemNode.item,
+              targetRate: outputItemNode.productionRate,
+              recipe: node.recipe,
+              facility: node.facility,
+              facilityCount: node.facilityCount,
+              isRawMaterial: false,
+              isTarget: outputItemNode.isTarget,
+              dependencies: [],
+            },
+            items,
+            facilities,
+            {
+              isDirectTarget: outputItemNode.isTarget,
+              directTargetRate: outputItemNode.isTarget
+                ? outputItemNode.productionRate
+                : undefined,
+            },
           ),
         );
       }
-      return nodeId;
+    }
+  });
+
+  // Create edges: Recipe → Item → Recipe
+  plan.edges.forEach((edge) => {
+    const sourceNode = plan.nodes.get(edge.from);
+    const targetNode = plan.nodes.get(edge.to);
+
+    if (!sourceNode || !targetNode) return;
+
+    // Recipe → Item (produce)
+    if (sourceNode.type === "recipe" && targetNode.type === "item") {
+      // Don't create visible edge, just track the relationship
+      return;
     }
 
-    // Skip targets without downstream
-    if (node.isTarget && !targetsWithDownstream.has(key)) {
-      node.dependencies.forEach((dep) =>
-        traverse(dep, null, edgeIdCounter, dep.targetRate),
-      );
-      return nodeId;
-    }
+    // Item → Recipe (consume)
+    if (sourceNode.type === "item" && targetNode.type === "recipe") {
+      // Find the recipe that produces this item
+      const producerRecipeId = Array.from(plan.edges).find(
+        (e) => e.to === edge.from && plan.nodes.get(e.from)?.type === "recipe",
+      )?.from;
 
-    // Create production node if not exists
-    if (!nodes.find((n) => n.id === nodeId)) {
-      const aggregatedData = aggregatedNodes.get(key)!;
-      const isDirectTarget = node.isTarget && targetsWithDownstream.has(key);
+      // Determine where this flow should end
+      const outputItemId = plan.edges.find((e) => e.from === edge.to)?.to;
+      const outputNode = outputItemId ? plan.nodes.get(outputItemId) : undefined;
+      const isTerminalTargetRecipe =
+        outputItemId &&
+        outputNode?.type === "item" &&
+        outputNode.isTarget &&
+        !upstreamItemIds.has(outputItemId);
 
-      nodes.push(
-        createProductionFlowNode(
-          nodeId,
-          {
-            ...aggregatedData.node,
-            targetRate: aggregatedData.totalRate,
-            facilityCount: aggregatedData.totalFacilityCount,
-          },
-          items,
-          facilities,
-          {
-            isDirectTarget,
-            directTargetRate: isDirectTarget
-              ? aggregatedData.totalRate
-              : undefined,
-          },
-        ),
-      );
-    }
+      const flowTargetId =
+        isTerminalTargetRecipe && outputNode?.type === "item"
+          ? createTargetSinkId(outputNode.itemId)
+          : edge.to;
 
-    // Create edge to parent
-    if (parentId && parentId !== nodeId) {
-      const edgeExists = edges.some(
-        (e) => e.source === nodeId && e.target === parentId,
-      );
+      if (producerRecipeId) {
+        // Calculate flow rate
+        const inputAmount =
+          targetNode.recipe.inputs.find(
+            (inp) => inp.itemId === sourceNode.itemId,
+          )?.amount || 0;
+        const flowRate =
+          calcRate(inputAmount, targetNode.recipe.craftingTime) *
+          targetNode.facilityCount;
 
-      if (!edgeExists) {
-        const flowRate = flowToParent ?? node.targetRate;
-        edges.push(
-          createEdge(`e${edgeIdCounter.count++}`, nodeId, parentId, flowRate),
+        flowEdges.push(
+          createEdge(
+            `e${edgeIdCounter++}`,
+            producerRecipeId,
+            flowTargetId,
+            flowRate,
+          ),
         );
-      }
-    }
+      } else if (sourceNode.isRawMaterial) {
+        // Raw material → Recipe: create node for raw material
+        const rawMaterialNodeId = createRawMaterialId(sourceNode.itemId);
 
-    node.dependencies.forEach((dep) => {
-      // Calculate actual flow from dependency to current node based on recipe ratios
-      let flowFromDep = dep.targetRate;
-
-      if (node.recipe) {
-        const aggregated = aggregatedNodes.get(key);
-        const nodeRate = aggregated ? aggregated.totalRate : node.targetRate;
-
-        const calculatedFlow = calculateDemandRate(
-          node.recipe,
-          dep.item.id,
-          node.item.id,
-          nodeRate,
-        );
-        if (calculatedFlow !== null) {
-          flowFromDep = calculatedFlow;
+        if (!flowNodes.find((n) => n.id === rawMaterialNodeId)) {
+          flowNodes.push(
+            createProductionFlowNode(
+              rawMaterialNodeId,
+              {
+                item: sourceNode.item,
+                targetRate: sourceNode.productionRate,
+                recipe: null,
+                facility: null,
+                facilityCount: 0,
+                isRawMaterial: true,
+                isTarget: false,
+                dependencies: [],
+              },
+              items,
+              facilities,
+              { isDirectTarget: false },
+            ),
+          );
         }
+
+        const inputAmount =
+          targetNode.recipe.inputs.find(
+            (inp) => inp.itemId === sourceNode.itemId,
+          )?.amount || 0;
+        const flowRate =
+          calcRate(inputAmount, targetNode.recipe.craftingTime) *
+          targetNode.facilityCount;
+
+        flowEdges.push(
+          createEdge(
+            `e${edgeIdCounter++}`,
+            rawMaterialNodeId,
+            flowTargetId,
+            flowRate,
+          ),
+        );
       }
-
-      traverse(dep, nodeId, edgeIdCounter, flowFromDep);
-    });
-    return nodeId;
-  };
-
-  const edgeIdCounter = { count: 0 };
-  rootNodes.forEach((root) => traverse(root, null, edgeIdCounter));
+    }
+  });
 
   // Create target sink nodes
-  const targetNodes = Array.from(aggregatedNodes.entries()).filter(
-    ([, data]) => data.node.isTarget && !data.node.isRawMaterial,
-  );
+  plan.nodes.forEach((node, nodeId) => {
+    if (node.type === "item" && node.isTarget && !node.isRawMaterial) {
+      const targetNodeId = createTargetSinkId(node.itemId);
 
-  targetNodes.forEach(([key, data]) => {
-    const targetNodeId = createTargetSinkId(data.node.item.id);
-    const hasDownstream = targetsWithDownstream.has(key);
+      // Find the recipe producing this target
+      const producerRecipeId = Array.from(plan.edges).find(
+        (e) => e.to === nodeId && plan.nodes.get(e.from)?.type === "recipe",
+      )?.from;
 
-    targetSinkNodes.push(
-      createTargetSinkNode(
-        targetNodeId,
-        data.node.item,
-        data.totalRate,
-        items,
-        facilities,
-        !hasDownstream
-          ? {
-              facility: data.node.facility,
-              facilityCount: data.totalFacilityCount,
-              recipe: data.node.recipe,
+      const producerRecipe = producerRecipeId
+        ? (plan.nodes.get(producerRecipeId) as
+          | Extract<ProductionGraphNode, { type: "recipe" }>
+          | undefined)
+        : undefined;
+
+      const isTerminalTarget = !upstreamItemIds.has(nodeId);
+
+      targetSinkNodes.push(
+        createTargetSinkNode(
+          targetNodeId,
+          node.item,
+          node.productionRate,
+          items,
+          facilities,
+          producerRecipe
+            ? {
+              facility: producerRecipe.facility,
+              facilityCount: producerRecipe.facilityCount,
+              recipe: producerRecipe.recipe,
             }
-          : undefined,
-      ),
-    );
-
-    if (hasDownstream) {
-      const nodeId = createFlowNodeId(key);
-
-      edges.push(
-        createEdge(
-          `e${edgeIdCounter.count++}`,
-          nodeId,
-          targetNodeId,
-          data.totalRate,
+            : undefined,
         ),
       );
-    } else {
-      edges.push(
-        ...createTargetDependencyEdges(
-          data.node,
-          targetNodeId,
-          data.totalRate,
-          getOrCreateNodeId,
-          edgeIdCounter,
-        ),
-      );
+
+      // Edge from producer recipe to target sink - only if NOT terminal
+      if (producerRecipeId && !isTerminalTarget) {
+        flowEdges.push(
+          createEdge(
+            `e${edgeIdCounter++}`,
+            producerRecipeId,
+            targetNodeId,
+            node.productionRate,
+          ),
+        );
+      }
     }
   });
 
   return {
-    nodes: [...nodes, ...targetSinkNodes] as (
+    nodes: [...flowNodes, ...targetSinkNodes] as (
       | FlowProductionNode
       | FlowTargetNode
     )[],
-    edges: edges,
+    edges: flowEdges,
   };
-}
-
-/**
- * Helper: Creates edges for target dependencies
- */
-function createTargetDependencyEdges(
-  targetNode: ProductionNode,
-  targetNodeId: string,
-  totalRate: number,
-  getOrCreateNodeId: (node: ProductionNode) => string,
-  edgeIdCounter: { count: number },
-): Edge[] {
-  const edges: Edge[] = [];
-  const recipe = targetNode.recipe;
-  if (!recipe) return edges;
-
-  targetNode.dependencies.forEach((dep) => {
-    const depNodeId = getOrCreateNodeId(dep);
-    const inputItem = recipe.inputs.find((inp) => inp.itemId === dep.item.id);
-    const outputItem = recipe.outputs.find(
-      (out) => out.itemId === targetNode.item.id,
-    );
-
-    if (!inputItem || !outputItem) return;
-
-    const flowRate = (inputItem.amount / outputItem.amount) * totalRate;
-    edges.push(
-      createEdge(
-        `e${edgeIdCounter.count++}`,
-        depNodeId,
-        targetNodeId,
-        flowRate,
-      ),
-    );
-  });
-
-  return edges;
 }

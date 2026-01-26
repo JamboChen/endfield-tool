@@ -1,186 +1,150 @@
 import { useMemo } from "react";
 import type {
   ProductionDependencyGraph,
-  ProductionNode,
+  ProductionGraphNode,
   ItemId,
   RecipeId,
-  Item,
   Recipe,
-  Facility,
 } from "@/types";
 import type { ProductionLineData } from "@/components/production/ProductionTable";
-import { createNodeKeyFromData } from "@/lib/node-keys";
 
-type MergedNode = {
-  item: Item;
-  totalRate: number;
-  recipe: Recipe | null;
-  facility: Facility | null;
+type MergedItemNode = {
+  itemId: ItemId;
+  totalProductionRate: number;
+  recipeId: RecipeId | null;
   totalFacilityCount: number;
   isRawMaterial: boolean;
   isTarget: boolean;
-  dependencies: Set<string>;
+  dependencies: Set<ItemId>;
   level: number;
 };
 
 /**
- * Collects all produced (non-raw) item IDs from the tree.
+ * Merges production data for items that are produced by same recipe.
  */
-function collectProducedItems(nodes: ProductionNode[]): Set<ItemId> {
-  const produced = new Set<ItemId>();
+function mergeItemNodes(
+  plan: ProductionDependencyGraph,
+): Map<ItemId, MergedItemNode> {
+  const merged = new Map<ItemId, MergedItemNode>();
 
-  const traverse = (node: ProductionNode) => {
-    if (node.isCyclePlaceholder) {
-      node.dependencies.forEach(traverse);
-      return;
-    }
-    if (!node.isRawMaterial && node.recipe) {
-      produced.add(node.item.id);
-    }
-    node.dependencies.forEach(traverse);
-  };
+  plan.nodes.forEach((node) => {
+    if (node.type !== "item") return;
 
-  nodes.forEach(traverse);
-  return produced;
-}
-
-/**
- * Checks if a node is a circular dependency.
- */
-function isCircularDep(node: ProductionNode, produced: Set<ItemId>): boolean {
-  return (
-    !node.isCyclePlaceholder && node.isRawMaterial && produced.has(node.item.id)
-  );
-}
-
-/**
- * Merges duplicate production nodes for table view.
- */
-function mergeNodes(
-  rootNodes: ProductionNode[],
-  producedItemIds: Set<ItemId>,
-): Map<string, MergedNode> {
-  const merged = new Map<string, MergedNode>();
-
-  const traverse = (node: ProductionNode) => {
-    if (node.isCyclePlaceholder || isCircularDep(node, producedItemIds)) {
-      node.dependencies.forEach(traverse);
-      return;
-    }
-
-    const key = createNodeKeyFromData(
-      node.item.id,
-      node.recipe?.id || null,
-      node.isRawMaterial,
-    );
-
-    const existing = merged.get(key);
+    const existing = merged.get(node.itemId);
 
     if (existing) {
-      existing.totalRate += node.targetRate;
-      existing.totalFacilityCount += node.facilityCount;
+      // Merge rates (shouldn't happen in current implementation, but safe)
+      existing.totalProductionRate += node.productionRate;
       if (node.isTarget) existing.isTarget = true;
-
-      node.dependencies.forEach((dep) => {
-        if (!isCircularDep(dep, producedItemIds)) {
-          existing.dependencies.add(
-            createNodeKeyFromData(
-              dep.item.id,
-              dep.recipe?.id || null,
-              dep.isRawMaterial,
-            ),
-          );
-        }
-      });
     } else {
-      const dependencies = new Set<string>();
-      node.dependencies.forEach((dep) => {
-        if (!isCircularDep(dep, producedItemIds)) {
-          dependencies.add(
-            createNodeKeyFromData(
-              dep.item.id,
-              dep.recipe?.id || null,
-              dep.isRawMaterial,
+      // Find producer recipe
+      const producerRecipeId =
+        Array.from(plan.nodes.values()).find(
+          (n): n is Extract<ProductionGraphNode, { type: "recipe" }> =>
+            n.type === "recipe" &&
+            plan.edges.some(
+              (e) => e.from === n.recipeId && e.to === node.itemId,
             ),
-          );
-        }
-      });
+        )?.recipeId || null;
 
-      merged.set(key, {
-        item: node.item,
-        totalRate: node.targetRate,
-        recipe: node.recipe,
-        facility: node.facility,
-        totalFacilityCount: node.facilityCount,
+      const facilityCount = producerRecipeId
+        ? (
+            plan.nodes.get(producerRecipeId) as Extract<
+              ProductionGraphNode,
+              { type: "recipe" }
+            >
+          )?.facilityCount || 0
+        : 0;
+
+      // Find dependencies (items consumed by this item's producer recipe)
+      const dependencies = new Set<ItemId>();
+      if (producerRecipeId) {
+        plan.edges.forEach((edge) => {
+          if (edge.to === producerRecipeId) {
+            const sourceNode = plan.nodes.get(edge.from);
+            if (sourceNode?.type === "item") {
+              dependencies.add(sourceNode.itemId);
+            }
+          }
+        });
+      }
+
+      merged.set(node.itemId, {
+        itemId: node.itemId,
+        totalProductionRate: node.productionRate,
+        recipeId: producerRecipeId,
+        totalFacilityCount: facilityCount,
         isRawMaterial: node.isRawMaterial,
         isTarget: node.isTarget,
         dependencies,
-        level: 0, // Will be calculated later
+        level: 0,
       });
     }
+  });
 
-    node.dependencies.forEach(traverse);
-  };
-
-  rootNodes.forEach(traverse);
   return merged;
 }
 
 /**
- * Calculates depth levels for merged nodes using topological order.
+ * Calculates depth levels using topological order.
  */
-function calculateLevels(merged: Map<string, MergedNode>): void {
-  const levels = new Map<string, number>();
-  const visited = new Set<string>();
+function calculateLevels(merged: Map<ItemId, MergedItemNode>): void {
+  const levels = new Map<ItemId, number>();
+  const visited = new Set<ItemId>();
 
-  const calcLevel = (key: string): number => {
-    if (levels.has(key)) return levels.get(key)!;
-    if (visited.has(key)) return 0; // Prevent infinite recursion
+  const calcLevel = (itemId: ItemId): number => {
+    if (levels.has(itemId)) return levels.get(itemId)!;
+    if (visited.has(itemId)) return 0;
 
-    visited.add(key);
+    visited.add(itemId);
 
-    const node = merged.get(key);
+    const node = merged.get(itemId);
     if (!node || node.dependencies.size === 0) {
-      levels.set(key, 0);
+      levels.set(itemId, 0);
       return 0;
     }
 
     let maxDepLevel = -1;
-    node.dependencies.forEach((depKey) => {
-      if (merged.has(depKey)) {
-        maxDepLevel = Math.max(maxDepLevel, calcLevel(depKey));
+    node.dependencies.forEach((depItemId) => {
+      if (merged.has(depItemId)) {
+        maxDepLevel = Math.max(maxDepLevel, calcLevel(depItemId));
       }
     });
 
     const level = maxDepLevel + 1;
-    levels.set(key, level);
+    levels.set(itemId, level);
     node.level = level;
     return level;
   };
 
-  // Calculate levels for all nodes
-  merged.forEach((_, key) => calcLevel(key));
+  merged.forEach((_, itemId) => calcLevel(itemId));
 }
 
 /**
- * Sorts merged nodes by level (deepest first) then by tier (highest first).
+ * Sorts merged nodes by level and tier.
  */
-function sortNodes(merged: Map<string, MergedNode>): MergedNode[] {
+function sortNodes(
+  merged: Map<ItemId, MergedItemNode>,
+  plan: ProductionDependencyGraph,
+): MergedItemNode[] {
   const nodes = Array.from(merged.values());
 
   return nodes.sort((a, b) => {
-    // Sort by level descending (deepest first)
     if (b.level !== a.level) {
       return b.level - a.level;
     }
-    // Then by tier descending (highest tier first)
-    return b.item.tier - a.item.tier;
+    const itemA = (
+      plan.nodes.get(a.itemId) as Extract<ProductionGraphNode, { type: "item" }>
+    ).item;
+    const itemB = (
+      plan.nodes.get(b.itemId) as Extract<ProductionGraphNode, { type: "item" }>
+    ).item;
+    return itemB.tier - itemA.tier;
   });
 }
 
 /**
  * Hook to generate table data from the production plan.
- * Handles merging, sorting, and formatting for the table view.
  */
 export function useProductionTable(
   plan: ProductionDependencyGraph | null,
@@ -189,45 +153,48 @@ export function useProductionTable(
   manualRawMaterials: Set<ItemId>,
 ): ProductionLineData[] {
   return useMemo(() => {
-    if (!plan || plan.dependencyRootNodes.length === 0) {
+    if (!plan || plan.nodes.size === 0) {
       return [];
     }
 
-    const producedItemIds = collectProducedItems(plan.dependencyRootNodes);
-    const mergedNodes = mergeNodes(plan.dependencyRootNodes, producedItemIds);
+    const mergedNodes = mergeItemNodes(plan);
     calculateLevels(mergedNodes);
-    const sortedNodes = sortNodes(mergedNodes);
+    const sortedNodes = sortNodes(mergedNodes, plan);
 
     return sortedNodes.map((node) => {
+      const itemNode = plan.nodes.get(node.itemId) as Extract<
+        ProductionGraphNode,
+        { type: "item" }
+      >;
+
       const availableRecipes = recipes.filter((recipe) =>
-        recipe.outputs.some((output) => output.itemId === node.item.id),
+        recipe.outputs.some((output) => output.itemId === node.itemId),
       );
 
       let selectedRecipeId: RecipeId | "" = "";
-      if (recipeOverrides.has(node.item.id)) {
-        selectedRecipeId = recipeOverrides.get(node.item.id)!;
-      } else if (node.recipe) {
-        selectedRecipeId = node.recipe.id;
+      if (recipeOverrides.has(node.itemId)) {
+        selectedRecipeId = recipeOverrides.get(node.itemId)!;
+      } else if (node.recipeId) {
+        selectedRecipeId = node.recipeId;
       }
 
-      const directDependencyItemIds = new Set<ItemId>();
-      if (node.recipe) {
-        node.recipe.inputs.forEach((input) => {
-          directDependencyItemIds.add(input.itemId);
-        });
-      }
+      const recipeNode = node.recipeId
+        ? (plan.nodes.get(node.recipeId) as
+            | Extract<ProductionGraphNode, { type: "recipe" }>
+            | undefined)
+        : undefined;
 
       return {
-        item: node.item,
-        outputRate: node.totalRate,
+        item: itemNode.item,
+        outputRate: node.totalProductionRate,
         availableRecipes,
         selectedRecipeId,
-        facility: node.facility,
+        facility: recipeNode?.facility || null,
         facilityCount: node.totalFacilityCount,
         isRawMaterial: node.isRawMaterial,
         isTarget: node.isTarget,
-        isManualRawMaterial: manualRawMaterials.has(node.item.id),
-        directDependencyItemIds,
+        isManualRawMaterial: manualRawMaterials.has(node.itemId),
+        directDependencyItemIds: node.dependencies,
       };
     });
   }, [plan, recipes, recipeOverrides, manualRawMaterials]);

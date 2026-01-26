@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ItemIcon } from "../production/ProductionTable";
+import { RecipeIOFull, ItemIcon } from "../production/ProductionTable";
 import { getItemName, getFacilityName } from "@/lib/i18n-helpers";
 import { useTranslation } from "react-i18next";
 import type { TargetSinkNodeData } from "@/types";
@@ -32,6 +32,9 @@ export default function CustomTargetNode({
   const { item, targetRate, productionInfo } = data;
   const { t } = useTranslation("production");
   const itemName = getItemName(item);
+  const { items } = data;
+
+  const getItemById = (itemId: string) => items.find((i) => i.id === itemId);
 
   // Check if this is a terminal target with production info
   const isTerminalTarget = productionInfo !== undefined;
@@ -107,10 +110,10 @@ export default function CustomTargetNode({
       </TooltipTrigger>
 
       {/* Tooltip content */}
-      <TooltipContent side="right" className="p-2 border shadow-md">
-        <div className="text-xs max-w-[200px]">
+      <TooltipContent side="right" className="p-0 border shadow-md">
+        <div className="text-xs max-w-[300px] p-2 max-h-[80vh] overflow-y-auto">
           <div className="font-bold mb-1">{t("tree.productionTarget")}</div>
-          <div className="text-muted-foreground">
+          <div className="text-muted-foreground mb-2">
             {t("tree.targetDescription", {
               item: itemName,
               rate: formatNumber(targetRate),
@@ -119,23 +122,29 @@ export default function CustomTargetNode({
 
           {/* Show production details for terminal targets */}
           {isTerminalTarget && facility && productionInfo.recipe && (
-            <div className="mt-2 pt-2 border-t">
-              <div className="text-muted-foreground">
-                {t("tree.facility")}: {facilityName}
+            <>
+              <RecipeIOFull
+                recipe={productionInfo.recipe}
+                getItemById={getItemById}
+              />
+              <div className="mt-2 pt-2 border-t">
+                <div className="text-muted-foreground">
+                  {t("tree.facility")}: {facilityName}
+                </div>
+                <div className="text-muted-foreground">
+                  {t("tree.facilityCount")}:{" "}
+                  {formatNumber(productionInfo.facilityCount, 1)}
+                </div>
+                <div className="text-muted-foreground">
+                  {t("tree.power")}:{" "}
+                  {formatNumber(
+                    facility.powerConsumption * productionInfo.facilityCount,
+                    1,
+                  )}{" "}
+                  MW
+                </div>
               </div>
-              <div className="text-muted-foreground">
-                {t("tree.facilityCount")}:{" "}
-                {formatNumber(productionInfo.facilityCount, 1)}
-              </div>
-              <div className="text-muted-foreground">
-                {t("tree.power")}:{" "}
-                {formatNumber(
-                  facility.powerConsumption * productionInfo.facilityCount,
-                  1,
-                )}{" "}
-                MW
-              </div>
-            </div>
+            </>
           )}
         </div>
       </TooltipContent>

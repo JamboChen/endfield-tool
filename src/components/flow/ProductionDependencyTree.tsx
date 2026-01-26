@@ -26,14 +26,10 @@ import { mapPlanToFlowSeparated } from "../mappers/separated-mapper";
 import { applyEdgeStyling } from "./flow-utils";
 import CustomBackwardEdge from "../nodes/CustomBackwardEdge";
 
-/**
- * Props for the ProductionDependencyTree component.
- */
 type ProductionDependencyTreeProps = {
   plan: ProductionDependencyGraph | null;
   items: Item[];
   facilities: Facility[];
-  /** Visualization mode: 'merged' shows aggregated facilities, 'separated' shows individual facilities */
   visualizationMode?: VisualizationMode;
 };
 
@@ -63,22 +59,21 @@ export default function ProductionDependencyTree({
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  // Perform layout and styling asynchronously when plan or visualization mode changes
   useEffect(() => {
     let isMounted = true;
-
     async function computeLayout() {
-      if (!plan || plan.dependencyRootNodes.length === 0) {
+      if (!plan || plan.nodes.size === 0) {
         setNodes([]);
         setEdges([]);
         return;
       }
 
-      // Select mapper and pass plan for optimization data
+      // Select mapper - now passes DAG structure instead of tree
       const flowData =
         visualizationMode === "separated"
-          ? mapPlanToFlowSeparated(plan.dependencyRootNodes, items, facilities)
-          : mapPlanToFlowMerged(plan.dependencyRootNodes, items, facilities);
+          ? mapPlanToFlowSeparated(plan, items, facilities)
+          : mapPlanToFlowMerged(plan, items, facilities);
+
       const { nodes: layoutedNodes, edges: layoutedEdges } =
         await getLayoutedElements(flowData.nodes, flowData.edges, "RIGHT");
 
@@ -97,7 +92,6 @@ export default function ProductionDependencyTree({
     };
   }, [plan, items, facilities, visualizationMode, setNodes, setEdges]);
 
-  // Define custom node types for React Flow
   const nodeTypes: NodeTypes = useMemo(
     () => ({
       productionNode: CustomProductionNode,
@@ -106,7 +100,6 @@ export default function ProductionDependencyTree({
     [],
   );
 
-  // Define custom edge types for React Flow
   const edgeTypes = useMemo(
     () => ({
       backwardEdge: CustomBackwardEdge,
@@ -114,8 +107,7 @@ export default function ProductionDependencyTree({
     [],
   );
 
-  // Display a message if no production plan is available
-  if (!plan || plan.dependencyRootNodes.length === 0) {
+  if (!plan || plan.nodes.size === 0) {
     return (
       <div className="h-full w-full flex items-center justify-center text-muted-foreground">
         {t("tree.noTarget")}
