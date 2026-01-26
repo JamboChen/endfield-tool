@@ -1,6 +1,5 @@
 import type {
   EdgeDirection,
-  ItemId,
   ProductionNode,
   Item,
   Facility,
