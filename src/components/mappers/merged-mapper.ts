@@ -30,6 +30,14 @@ export function mapPlanToFlowMerged(
 
   let edgeIdCounter = 0;
 
+  // Pre-calculate which items are upstream (have consumers)
+  const upstreamItemIds = new Set<string>();
+  plan.edges.forEach((edge) => {
+    if (plan.nodes.get(edge.from)?.type === "item") {
+      upstreamItemIds.add(edge.from);
+    }
+  });
+
   // Create production nodes (recipe nodes only)
   plan.nodes.forEach((node, nodeId) => {
     if (node.type === "recipe") {
@@ -40,7 +48,12 @@ export function mapPlanToFlowMerged(
           | undefined)
         : undefined;
 
-      if (outputItemNode) {
+      // Skip recipe node if it's a terminal target (has no consumers)
+      // This is because we'll display it in the TargetSinkNode instead
+      const isTerminalTarget =
+        outputItemNode?.isTarget && !upstreamItemIds.has(outputItemId!);
+
+      if (outputItemNode && !isTerminalTarget) {
         flowNodes.push(
           createProductionFlowNode(
             nodeId,
@@ -88,6 +101,20 @@ export function mapPlanToFlowMerged(
         (e) => e.to === edge.from && plan.nodes.get(e.from)?.type === "recipe",
       )?.from;
 
+      // Determine where this flow should end
+      const outputItemId = plan.edges.find((e) => e.from === edge.to)?.to;
+      const outputNode = outputItemId ? plan.nodes.get(outputItemId) : undefined;
+      const isTerminalTargetRecipe =
+        outputItemId &&
+        outputNode?.type === "item" &&
+        outputNode.isTarget &&
+        !upstreamItemIds.has(outputItemId);
+
+      const flowTargetId =
+        isTerminalTargetRecipe && outputNode?.type === "item"
+          ? createTargetSinkId(outputNode.itemId)
+          : edge.to;
+
       if (producerRecipeId) {
         // Calculate flow rate
         const inputAmount =
@@ -102,7 +129,7 @@ export function mapPlanToFlowMerged(
           createEdge(
             `e${edgeIdCounter++}`,
             producerRecipeId,
-            edge.to,
+            flowTargetId,
             flowRate,
           ),
         );
@@ -143,7 +170,7 @@ export function mapPlanToFlowMerged(
           createEdge(
             `e${edgeIdCounter++}`,
             rawMaterialNodeId,
-            edge.to,
+            flowTargetId,
             flowRate,
           ),
         );
@@ -167,6 +194,8 @@ export function mapPlanToFlowMerged(
           | undefined)
         : undefined;
 
+      const isTerminalTarget = !upstreamItemIds.has(nodeId);
+
       targetSinkNodes.push(
         createTargetSinkNode(
           targetNodeId,
@@ -184,8 +213,8 @@ export function mapPlanToFlowMerged(
         ),
       );
 
-      // Edge from producer recipe to target sink
-      if (producerRecipeId) {
+      // Edge from producer recipe to target sink - only if NOT terminal
+      if (producerRecipeId && !isTerminalTarget) {
         flowEdges.push(
           createEdge(
             `e${edgeIdCounter++}`,
