@@ -13,7 +13,8 @@ import {
   createProductionFlowNode,
   createTargetSinkNode,
 } from "../flow/flow-utils";
-import { createTargetSinkId } from "@/lib/node-keys";
+import { createTargetSinkId, createRawMaterialId } from "@/lib/node-keys";
+import { calcRate } from "@/lib/utils";
 
 /**
  * Maps a ProductionDependencyGraph to React Flow nodes and edges in merged mode.
@@ -35,8 +36,8 @@ export function mapPlanToFlowMerged(
       const outputItemId = plan.edges.find((e) => e.from === nodeId)?.to;
       const outputItemNode = outputItemId
         ? (plan.nodes.get(outputItemId) as
-            | Extract<ProductionGraphNode, { type: "item" }>
-            | undefined)
+          | Extract<ProductionGraphNode, { type: "item" }>
+          | undefined)
         : undefined;
 
       if (outputItemNode) {
@@ -94,7 +95,7 @@ export function mapPlanToFlowMerged(
             (inp) => inp.itemId === sourceNode.itemId,
           )?.amount || 0;
         const flowRate =
-          ((inputAmount * 60) / targetNode.recipe.craftingTime) *
+          calcRate(inputAmount, targetNode.recipe.craftingTime) *
           targetNode.facilityCount;
 
         flowEdges.push(
@@ -107,7 +108,7 @@ export function mapPlanToFlowMerged(
         );
       } else if (sourceNode.isRawMaterial) {
         // Raw material → Recipe: create node for raw material
-        const rawMaterialNodeId = `raw_${sourceNode.itemId}`;
+        const rawMaterialNodeId = createRawMaterialId(sourceNode.itemId);
 
         if (!flowNodes.find((n) => n.id === rawMaterialNodeId)) {
           flowNodes.push(
@@ -135,7 +136,7 @@ export function mapPlanToFlowMerged(
             (inp) => inp.itemId === sourceNode.itemId,
           )?.amount || 0;
         const flowRate =
-          ((inputAmount * 60) / targetNode.recipe.craftingTime) *
+          calcRate(inputAmount, targetNode.recipe.craftingTime) *
           targetNode.facilityCount;
 
         flowEdges.push(
@@ -162,8 +163,8 @@ export function mapPlanToFlowMerged(
 
       const producerRecipe = producerRecipeId
         ? (plan.nodes.get(producerRecipeId) as
-            | Extract<ProductionGraphNode, { type: "recipe" }>
-            | undefined)
+          | Extract<ProductionGraphNode, { type: "recipe" }>
+          | undefined)
         : undefined;
 
       targetSinkNodes.push(
@@ -175,10 +176,10 @@ export function mapPlanToFlowMerged(
           facilities,
           producerRecipe
             ? {
-                facility: producerRecipe.facility,
-                facilityCount: producerRecipe.facilityCount,
-                recipe: producerRecipe.recipe,
-              }
+              facility: producerRecipe.facility,
+              facilityCount: producerRecipe.facilityCount,
+              recipe: producerRecipe.recipe,
+            }
             : undefined,
         ),
       );

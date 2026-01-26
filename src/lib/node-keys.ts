@@ -7,3 +7,13 @@
 export function createTargetSinkId(itemId: string): string {
   return `target-sink-${itemId}`;
 }
+
+/**
+ * Create a raw material node ID.
+ *
+ * @example
+ * createRawMaterialId("iron_ore") // "raw_iron_ore"
+ */
+export function createRawMaterialId(itemId: string): string {
+  return `raw_${itemId}`;
+}

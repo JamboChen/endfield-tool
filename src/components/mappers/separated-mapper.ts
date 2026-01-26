@@ -14,7 +14,8 @@ import {
   createProductionFlowNode,
   createTargetSinkNode,
 } from "../flow/flow-utils";
-import { createTargetSinkId } from "@/lib/node-keys";
+import { createTargetSinkId, createRawMaterialId } from "@/lib/node-keys";
+import { calcRate } from "@/lib/utils";
 
 /**
  * Maps ProductionDependencyGraph to React Flow nodes and edges in separated mode.
@@ -38,8 +39,8 @@ export function mapPlanToFlowSeparated(
       const outputItemId = plan.edges.find((e) => e.from === nodeId)?.to;
       const outputItemNode = outputItemId
         ? (plan.nodes.get(outputItemId) as
-            | Extract<ProductionGraphNode, { type: "item" }>
-            | undefined)
+          | Extract<ProductionGraphNode, { type: "item" }>
+          | undefined)
         : undefined;
 
       if (outputItemNode) {
@@ -68,7 +69,7 @@ export function mapPlanToFlowSeparated(
     let rawNodeId = rawMaterialNodes.get(itemId);
 
     if (!rawNodeId) {
-      rawNodeId = `raw_${itemId}`;
+      rawNodeId = createRawMaterialId(itemId);
       rawMaterialNodes.set(itemId, rawNodeId);
 
       flowNodes.push(
@@ -158,8 +159,8 @@ export function mapPlanToFlowSeparated(
     const outputItemId = plan.edges.find((e) => e.from === recipeId)?.to;
     const outputItemNode = outputItemId
       ? (plan.nodes.get(outputItemId) as
-          | Extract<ProductionGraphNode, { type: "item" }>
-          | undefined)
+        | Extract<ProductionGraphNode, { type: "item" }>
+        | undefined)
       : undefined;
 
     if (!recipeNode || !outputItemNode) return;
@@ -216,10 +217,9 @@ export function mapPlanToFlowSeparated(
 
           recipeNode.recipe.inputs.forEach((input) => {
             const inputDemandRate =
-              ((input.amount * 60) / recipeNode.recipe.craftingTime) *
+              calcRate(input.amount, recipeNode.recipe.craftingTime) *
               (facilityInstance.actualOutputRate /
-                ((recipeNode.recipe.outputs[0].amount * 60) /
-                  recipeNode.recipe.craftingTime));
+                calcRate(recipeNode.recipe.outputs[0].amount, recipeNode.recipe.craftingTime));
 
             allocateUpstream(
               input.itemId,
@@ -238,8 +238,8 @@ export function mapPlanToFlowSeparated(
     const outputItemId = plan.edges.find((e) => e.from === nodeId)?.to;
     const outputItemNode = outputItemId
       ? (plan.nodes.get(outputItemId) as
-          | Extract<ProductionGraphNode, { type: "item" }>
-          | undefined)
+        | Extract<ProductionGraphNode, { type: "item" }>
+        | undefined)
       : undefined;
 
     if (!outputItemNode || outputItemNode.isTarget) return;
@@ -282,9 +282,9 @@ export function mapPlanToFlowSeparated(
       // Allocate upstream for this facility's dependencies
       node.recipe.inputs.forEach((input) => {
         const inputDemandRate =
-          ((input.amount * 60) / node.recipe.craftingTime) *
+          calcRate(input.amount, node.recipe.craftingTime) *
           (facilityInstance.actualOutputRate /
-            ((node.recipe.outputs[0].amount * 60) / node.recipe.craftingTime));
+            calcRate(node.recipe.outputs[0].amount, node.recipe.craftingTime));
 
         allocateUpstream(
           input.itemId,
@@ -307,8 +307,8 @@ export function mapPlanToFlowSeparated(
 
     const producerRecipe = producerRecipeId
       ? (plan.nodes.get(producerRecipeId) as
-          | Extract<ProductionGraphNode, { type: "recipe" }>
-          | undefined)
+        | Extract<ProductionGraphNode, { type: "recipe" }>
+        | undefined)
       : undefined;
 
     targetSinkNodes.push(
@@ -320,10 +320,10 @@ export function mapPlanToFlowSeparated(
         facilities,
         producerRecipe
           ? {
-              facility: producerRecipe.facility,
-              facilityCount: producerRecipe.facilityCount,
-              recipe: producerRecipe.recipe,
-            }
+            facility: producerRecipe.facility,
+            facilityCount: producerRecipe.facilityCount,
+            recipe: producerRecipe.recipe,
+          }
           : undefined,
       ),
     );

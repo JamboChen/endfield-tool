@@ -12,6 +12,7 @@ import type {
 } from "@/types";
 import { solveLinearSystem } from "./linear-solver";
 import { forcedRawMaterials } from "@/data";
+import { calcRate } from "@/lib/utils";
 
 export type RecipeSelector = (
   availableRecipes: Recipe[],
@@ -85,9 +86,6 @@ const getOrThrow = <K, V>(map: Map<K, V>, key: K, type: string): V => {
   return value;
 };
 
-const calcRate = (amount: number, craftingTime: number): number =>
-  (amount * 60) / craftingTime;
-
 function buildBipartiteGraph(
   targets: Array<{ itemId: ItemId; rate: number }>,
   maps: ProductionMaps,
@@ -141,10 +139,10 @@ function buildBipartiteGraph(
 
     const selectedRecipe = recipeOverrides?.has(itemId)
       ? getOrThrow(
-          maps.recipeMap,
-          recipeOverrides.get(itemId)!,
-          "Override recipe",
-        )
+        maps.recipeMap,
+        recipeOverrides.get(itemId)!,
+        "Override recipe",
+      )
       : recipeSelector(availableRecipes, new Set([itemId]));
 
     const facility = getOrThrow(
