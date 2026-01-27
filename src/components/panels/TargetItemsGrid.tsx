@@ -57,7 +57,7 @@ const TargetItemsGrid = memo(function TargetItemsGrid({
               variant="ghost"
               size="sm"
               onClick={() => onTargetRemove(index)}
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full bg-background shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground z-10"
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full bg-background shadow-sm [@media(hover:none)]:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground z-10"
               aria-label={t("removeTarget")}
             >
               <X className="h-3 w-3" />
