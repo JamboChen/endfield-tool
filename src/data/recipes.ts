@@ -4,55 +4,37 @@ import type { Recipe } from "@/types";
 export const recipes: Recipe[] = [
   {
     id: RecipeId.COMPONENT_GLASS_CMPT_1,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_GLASS_CMPT, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_GLASS_CMPT, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_CMPT_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.COMPONENT_GLASS_ENR_CMPT_1,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_ENR, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_GLASS_ENR_CMPT, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_ENR, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_GLASS_ENR_CMPT, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_CMPT_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.COMPONENT_IRON_CMPT_1,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_IRON_CMPT, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_CMPT, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_CMPT_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.COMPONENT_IRON_ENR_CMPT_1,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_ENR, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_IRON_ENR_CMPT, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_ENR, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_ENR_CMPT, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_CMPT_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.DISMANTLER_GLASS_GRASS_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -60,11 +42,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_GLASS_GRASS_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_2, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -72,11 +52,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_GLASS_WATER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_WATER, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -84,11 +62,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_GLASS_XIRANITE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_XIRANITE, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -96,11 +72,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_GLASSENR_GRASS_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -108,11 +82,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_GLASSENR_GRASS_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_2, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -120,11 +92,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_GLASSENR_WATER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_WATER, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -132,11 +102,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_GLASSENR_XIRANITE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_XIRANITE, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -144,11 +112,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRON_GRASS_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -156,11 +122,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRON_GRASS_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_2, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -168,11 +132,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRON_WATER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_WATER, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -180,11 +142,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRON_XIRANITE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_XIRANITE, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -192,11 +152,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRONENR_GRASS_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -204,11 +162,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRONENR_GRASS_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_2, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -216,11 +172,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRONENR_WATER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_WATER, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -228,11 +182,9 @@ export const recipes: Recipe[] = [
   },
   {
     id: RecipeId.DISMANTLER_IRONENR_XIRANITE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_XIRANITE, amount: 1 }],
     outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
     facilityId: FacilityId.ITEM_PORT_DISMANTLER_1,
@@ -241,671 +193,479 @@ export const recipes: Recipe[] = [
   {
     id: RecipeId.FILLING_BOTTLED_FOOD_1_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 5 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 5 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_2, amount: 5 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_FOOD_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_FOOD_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 10,
   },
   {
     id: RecipeId.FILLING_BOTTLED_FOOD_2_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 10 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 10 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_2, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_FOOD_2, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_FOOD_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 10,
   },
   {
     id: RecipeId.FILLING_BOTTLED_FOOD_3_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 10 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 10 },
       { itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_2, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_FOOD_3, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_FOOD_3, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 10,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASS_GRASS_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASS_GRASS_2,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASS_WATER,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_WATER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASS_XIRANITE,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASS_XIRANITE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASSENR_GRASS_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASSENR_GRASS_2,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASSENR_WATER,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_WATER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_GLASSENR_XIRANITE,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_GLASSENR_XIRANITE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRON_GRASS_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRON_GRASS_2,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRON_WATER,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_WATER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRON_XIRANITE,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRON_XIRANITE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRONENR_GRASS_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRONENR_GRASS_2,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRONENR_WATER,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_WATER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_IRONENR_XIRANITE,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_FBOTTLE_IRONENR_XIRANITE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FILLING_BOTTLED_REC_HP_1_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 5 },
+      { itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 5 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_1, amount: 5 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_REC_HP_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_REC_HP_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 10,
   },
   {
     id: RecipeId.FILLING_BOTTLED_REC_HP_2_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 10 },
+      { itemId: ItemId.ITEM_IRON_BOTTLE, amount: 10 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_1, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_REC_HP_2, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_REC_HP_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 10,
   },
   {
     id: RecipeId.FILLING_BOTTLED_REC_HP_3_1,
     inputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 10 },
+      { itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 10 },
       { itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_1, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_REC_HP_3, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_REC_HP_3, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FILLING_PD_MC_1,
     craftingTime: 10,
   },
   {
     id: RecipeId.FURNANCE_CARBON_ENR_1,
-    inputs: [
-      { itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_ENR, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_ENR, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_ENR_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_ENR_POWDER_2,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_MATERIAL_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_MTL, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_MTL, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_MATERIAL_2,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_MTL, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_MTL, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_MATERIAL_3,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_MTL, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_MTL, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_MATERIAL_4,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_TUNDRA_WOOD, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_MTL, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_TUNDRA_WOOD, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_MTL, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_MATERIAL_5,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_MTL, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_MTL, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_MATERIAL_6,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_MTL, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_MTL, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_POWDER_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_POWDER_2,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_POWDER_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_POWDER_3,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 3 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 3 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_POWDER_4,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_POWDER_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_POWDER_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CARBON_POWDER_5,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_POWDER_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_POWDER_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CRYSTAL_ENR_1,
-    inputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_ENR_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_ENR, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_CRYSTAL_ENR_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CRYSTAL_ENR, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CRYSTAL_ENR_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_ORIGINIUM_ENR_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_ENR_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_ORIGINIUM_ENR_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CRYSTAL_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CRYSTAL_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_ORIGINIUM_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_ORIGINIUM_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CRYSTAL_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CRYSTAL_SHELL_1,
-    inputs: [
-      { itemId: ItemId.ITEM_ORIGINIUM_ORE, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_ORIGINIUM_ORE, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_CRYSTAL_SHELL_2,
-    inputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_CRYSTAL_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_IRON_ENR_1,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_ENR_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_IRON_ENR, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_ENR_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_ENR, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_IRON_NUGGET_1,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_ORE, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_ORE, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_IRON_NUGGET_2,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_QUARTZ_ENR_1,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_ENR_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_QUARTZ_ENR, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_ENR_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_QUARTZ_ENR, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_QUARTZ_GLASS_1,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_SAND, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_SAND, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.FURNANCE_QUARTZ_GLASS_2,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_POWDER, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_POWDER, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_FURNANCE_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_CARBON_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_CARBON_MTL, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_CARBON_MTL, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_CRYSTAL_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_CRYSTAL_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_IRON_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_IRON_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_NUGGET, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_ORIGINIUM_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_ORIGINIUM_ORE, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_ORIGINIUM_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_ORIGINIUM_ORE, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_ORIGINIUM_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_PLANT_BBFLOWER_POWDER_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_BBFLOWER_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_BBFLOWER_POWDER_1, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_BBFLOWER_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_BBFLOWER_POWDER_1, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_PLANT_GRASS_POWDER_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_POWDER_1, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_POWDER_1, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_PLANT_GRASS_POWDER_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_POWDER_2, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_POWDER_2, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_PLANT_MOSS_POWDER_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_1, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_POWDER_1, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_PLANT_MOSS_POWDER_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_2, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_POWDER_2, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_PLANT_MOSS_POWDER_3_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 3 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 3 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.GRINDER_QUARTZ_POWDER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_QUARTZ_POWDER, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_QUARTZ_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_GRINDER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.PLANTER_PLANT_BBFLOWER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_BBFLOWER_SEED_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_BBFLOWER_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_BBFLOWER_SEED_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_BBFLOWER_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_PLANTER_1,
     craftingTime: 2,
   },
@@ -915,9 +675,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_PLANT_GRASS_SEED_1, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 2 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_PLANTER_1,
     craftingTime: 2,
   },
@@ -927,42 +685,28 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_PLANT_GRASS_SEED_2, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 2 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_PLANTER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.PLANTER_PLANT_MOSS_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_SEED_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_SEED_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_PLANTER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.PLANTER_PLANT_MOSS_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_SEED_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_SEED_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_PLANTER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.PLANTER_PLANT_MOSS_3_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_SEED_3, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_SEED_3, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_PLANTER_1,
     craftingTime: 2,
   },
@@ -972,9 +716,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_XIRANITE_POWDER, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_MIX_POOL_1,
     craftingTime: 2,
   },
@@ -984,9 +726,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_PLANT_GRASS_POWDER_1, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_MIX_POOL_1,
     craftingTime: 2,
   },
@@ -996,163 +736,105 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_PLANT_GRASS_POWDER_2, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_LIQUID_PLANT_GRASS_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_MIX_POOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_BBFLOWER_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_BBFLOWER_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_BBFLOWER_SEED_1, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_BBFLOWER_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_BBFLOWER_SEED_1, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_GRASS_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_SEED_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_SEED_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_GRASS_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_GRASS_SEED_2, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_GRASS_SEED_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_MOSS_1_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_SEED_1, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_SEED_1, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_MOSS_2_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_SEED_2, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_SEED_2, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_MOSS_3_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_SEED_3, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_3, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_SEED_3, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_SP_1,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_1, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_SEED_1, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_SP_1, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_SP_SEED_1, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_SP_2,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_2, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_SEED_2, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_SP_2, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_SP_SEED_2, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_SP_3,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_3, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_SEED_3, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_SP_3, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_SP_SEED_3, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SEEDCOLLECTOR_PLANT_SP_4,
-    inputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_4, amount: 1 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_SP_SEED_4, amount: 2 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_PLANT_SP_4, amount: 1 }],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_SP_SEED_4, amount: 2 }],
     facilityId: FacilityId.ITEM_PORT_SEEDCOL_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SHAPER_GLASS_BOTTLE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 2 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASS_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 2 }],
+    outputs: [{ itemId: ItemId.ITEM_GLASS_BOTTLE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_SHAPER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SHAPER_GLASS_ENR_BOTTLE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_QUARTZ_ENR, amount: 2 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_GLASSENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_QUARTZ_ENR, amount: 2 }],
+    outputs: [{ itemId: ItemId.ITEM_GLASS_ENR_BOTTLE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_SHAPER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SHAPER_IRON_BOTTLE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_NUGGET, amount: 2 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_NUGGET, amount: 2 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_BOTTLE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_SHAPER_1,
     craftingTime: 2,
   },
   {
     id: RecipeId.SHAPER_IRON_ENR_BOTTLE_1,
-    inputs: [
-      { itemId: ItemId.ITEM_IRON_ENR, amount: 2 },
-    ],
-    outputs: [
-      { itemId: ItemId.ITEM_FBOTTLE_IRONENR_GRASS_1, amount: 1 },
-    ],
+    inputs: [{ itemId: ItemId.ITEM_IRON_ENR, amount: 2 }],
+    outputs: [{ itemId: ItemId.ITEM_IRON_ENR_BOTTLE, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_SHAPER_1,
     craftingTime: 2,
   },
@@ -1162,9 +844,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_CARBON_POWDER, amount: 2 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_CARBON_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_THICKENER_1,
     craftingTime: 2,
   },
@@ -1174,9 +854,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_CRYSTAL_POWDER, amount: 2 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_CRYSTAL_ENR_POWDER, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_CRYSTAL_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_THICKENER_1,
     craftingTime: 2,
   },
@@ -1186,9 +864,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_IRON_POWDER, amount: 2 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_IRON_ENR_POWDER, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_IRON_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_THICKENER_1,
     craftingTime: 2,
   },
@@ -1198,9 +874,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_ORIGINIUM_POWDER, amount: 2 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_ORIGINIUM_ENR_POWDER, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_ORIGINIUM_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_THICKENER_1,
     craftingTime: 2,
   },
@@ -1210,9 +884,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_1, amount: 2 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_THICKENER_1,
     craftingTime: 2,
   },
@@ -1222,9 +894,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_2, amount: 2 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_2, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PLANT_MOSS_ENR_POWDER_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_THICKENER_1,
     craftingTime: 2,
   },
@@ -1234,9 +904,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_QUARTZ_POWDER, amount: 2 },
       { itemId: ItemId.ITEM_PLANT_MOSS_POWDER_3, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_QUARTZ_ENR_POWDER, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_QUARTZ_ENR_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_THICKENER_1,
     craftingTime: 2,
   },
@@ -1246,9 +914,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_GLASS_CMPT, amount: 5 },
       { itemId: ItemId.ITEM_ORIGINIUM_POWDER, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PROC_BATTERY_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PROC_BATTERY_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_TOOLS_ASM_MC_1,
     craftingTime: 10,
   },
@@ -1258,9 +924,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_IRON_CMPT, amount: 10 },
       { itemId: ItemId.ITEM_ORIGINIUM_POWDER, amount: 15 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PROC_BATTERY_2, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PROC_BATTERY_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_TOOLS_ASM_MC_1,
     craftingTime: 10,
   },
@@ -1270,9 +934,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_IRON_ENR_CMPT, amount: 10 },
       { itemId: ItemId.ITEM_ORIGINIUM_ENR_POWDER, amount: 15 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PROC_BATTERY_3, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PROC_BATTERY_3, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_TOOLS_ASM_MC_1,
     craftingTime: 10,
   },
@@ -1282,9 +944,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_XIRANITE_POWDER, amount: 5 },
       { itemId: ItemId.ITEM_ORIGINIUM_ENR_POWDER, amount: 15 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PROC_BATTERY_4, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PROC_BATTERY_4, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_TOOLS_ASM_MC_1,
     craftingTime: 10,
   },
@@ -1294,9 +954,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_GLASS_CMPT, amount: 5 },
       { itemId: ItemId.ITEM_PLANT_BBFLOWER_POWDER_1, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_PROC_BOMB_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_PROC_BOMB_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_TOOLS_ASM_MC_1,
     craftingTime: 10,
   },
@@ -1306,9 +964,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_IRON_CMPT, amount: 10 },
       { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 5 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_FOOD_4, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_FOOD_4, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_TOOLS_ASM_MC_1,
     craftingTime: 10,
   },
@@ -1316,11 +972,9 @@ export const recipes: Recipe[] = [
     id: RecipeId.TOOLS_PROC_REC_HP_4_1,
     inputs: [
       { itemId: ItemId.ITEM_IRON_CMPT, amount: 10 },
-      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_1, amount: 5 },
+      { itemId: ItemId.ITEM_FBOTTLE_IRON_GRASS_2, amount: 5 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_BOTTLED_REC_HP_4, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_BOTTLED_REC_HP_4, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_TOOLS_ASM_MC_1,
     craftingTime: 10,
   },
@@ -1330,9 +984,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 5 },
       { itemId: ItemId.ITEM_QUARTZ_GLASS, amount: 5 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_EQUIP_SCRIPT_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_EQUIP_SCRIPT_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_WINDER_1,
     craftingTime: 10,
   },
@@ -1342,9 +994,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_CRYSTAL_SHELL, amount: 10 },
       { itemId: ItemId.ITEM_IRON_NUGGET, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_EQUIP_SCRIPT_2, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_EQUIP_SCRIPT_2, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_WINDER_1,
     craftingTime: 10,
   },
@@ -1354,9 +1004,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_CRYSTAL_ENR, amount: 10 },
       { itemId: ItemId.ITEM_QUARTZ_ENR, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_EQUIP_SCRIPT_3, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_EQUIP_SCRIPT_3, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_WINDER_1,
     craftingTime: 10,
   },
@@ -1366,9 +1014,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_CRYSTAL_ENR, amount: 10 },
       { itemId: ItemId.ITEM_XIRANITE_POWDER, amount: 10 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_EQUIP_SCRIPT_4, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_EQUIP_SCRIPT_4, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_WINDER_1,
     craftingTime: 10,
   },
@@ -1378,9 +1024,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_MUCK_FECES_1, amount: 1 },
       { itemId: ItemId.ITEM_LIQUID_XIRANITE, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_MUCK_XIRANITE_1, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_MUCK_XIRANITE_1, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_XIRANITE_OVEN_1,
     craftingTime: 2,
   },
@@ -1390,9 +1034,7 @@ export const recipes: Recipe[] = [
       { itemId: ItemId.ITEM_CARBON_ENR, amount: 2 },
       { itemId: ItemId.ITEM_LIQUID_WATER, amount: 1 },
     ],
-    outputs: [
-      { itemId: ItemId.ITEM_XIRANITE_POWDER, amount: 1 },
-    ],
+    outputs: [{ itemId: ItemId.ITEM_XIRANITE_POWDER, amount: 1 }],
     facilityId: FacilityId.ITEM_PORT_XIRANITE_OVEN_1,
     craftingTime: 2,
   },
