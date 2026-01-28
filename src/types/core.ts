@@ -4,6 +4,7 @@ type Item = {
   id: ItemId;
   iconUrl?: string;
   tier: number;
+  asTarget?: boolean;
 };
 
 type RecipeItem = {
