@@ -96,9 +96,9 @@ const TargetItemsGrid = memo(function TargetItemsGrid({
                     if (val === "") {
                       onTargetChange(index, 0);
                     } else {
-                      const intVal = parseInt(val, 10);
-                      if (!isNaN(intVal)) {
-                        onTargetChange(index, intVal);
+                      const num = Number(val);
+                      if (!isNaN(num)) {
+                        onTargetChange(index, num);
                       }
                     }
                   }}
