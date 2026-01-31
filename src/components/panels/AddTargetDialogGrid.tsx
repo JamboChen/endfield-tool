@@ -31,7 +31,7 @@ export default function AddTargetDialogGrid({
   const { t } = useTranslation("dialog");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<ItemId | null>(null);
-  const [defaultRate, setDefaultRate] = useState(10);
+  const [defaultRate, setDefaultRate] = useState(6);
 
   const availableItems = items.filter(
     (item) => !existingTargetIds.includes(item.id) && item.asTarget !== false,
